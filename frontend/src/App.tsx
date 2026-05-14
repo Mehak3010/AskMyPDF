@@ -4,6 +4,7 @@ import { ChatView } from './components/ChatView'
 import { PDFViewer } from './components/PDFViewer'
 import { DocumentLibrary } from './components/DocumentLibrary'
 import { FileText, ArrowLeft, Layers } from 'lucide-react'
+import { Badge } from './components/ui/badge'
 
 function App() {
   const [fileData, setFileData] = useState<{ name: string; url: string } | null>(null)
@@ -85,6 +86,5 @@ function App() {
   )
 }
 
-import { Badge } from './components/ui/badge'
 
 export default App

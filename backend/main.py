@@ -4,6 +4,7 @@ import uuid
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -21,6 +22,7 @@ import time
 load_dotenv()
 
 app = FastAPI(title="AskMyPDF Backend")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # CORS middleware to allow requests from frontend
 app.add_middleware(
@@ -141,7 +143,9 @@ async def upload_pdf(file: UploadFile = File(...), collection: str = Form("Gener
         return {
             "message": f"File '{file.filename}' added to collection '{collection}'",
             "doc_id": doc_id,
-            "chunks_created": len(chunks)
+            "chunks_created": len(chunks),
+            "filename": file.filename,
+            "url": f"http://localhost:8000/uploads/{doc_id}_{file.filename}"
         }
     except Exception as e:
         print(f"Error during upload/processing: {e}")
