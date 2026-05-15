@@ -40,6 +40,11 @@ DOCS_METADATA_FILE = "docs_metadata.json"
 # Create necessary directories
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+@app.on_event("startup")
+async def startup_event():
+    """Run sync on startup."""
+    sync_existing_files()
+
 def load_docs_metadata():
     if os.path.exists(DOCS_METADATA_FILE):
         with open(DOCS_METADATA_FILE, "r") as f:
@@ -49,6 +54,102 @@ def load_docs_metadata():
 def save_docs_metadata(metadata):
     with open(DOCS_METADATA_FILE, "w") as f:
         json.dump(metadata, f, indent=4)
+
+def sync_existing_files():
+    """
+    Scans the UPLOAD_DIR for files not in metadata and adds them.
+    Also ensures the vector store is built if it doesn't exist.
+    """
+    metadata = load_docs_metadata()
+    existing_ids = {d["id"] for d in metadata["documents"]}
+    files_in_dir = os.listdir(UPLOAD_DIR)
+    
+    updated = False
+    new_chunks = []
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    for filename in files_in_dir:
+        if not filename.endswith(".pdf"):
+            continue
+            
+        # Check if file follows the {uuid}_{original_name} pattern
+        if "_" in filename:
+            parts = filename.split("_", 1)
+            doc_id = parts[0]
+            original_name = parts[1]
+        else:
+            # If it's just a raw file, give it an ID and rename it to match pattern
+            doc_id = str(uuid.uuid4())
+            original_name = filename
+            new_filename = f"{doc_id}_{filename}"
+            old_path = os.path.join(UPLOAD_DIR, filename)
+            new_path = os.path.join(UPLOAD_DIR, new_filename)
+            os.rename(old_path, new_path)
+            filename = new_filename
+
+        if doc_id not in existing_ids:
+            print(f"Syncing new file found in uploads: {original_name}")
+            try:
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                loader = PyPDFLoader(file_path)
+                documents = loader.load()
+                
+                for i, doc in enumerate(documents):
+                    doc.metadata.update({
+                        "doc_id": doc_id,
+                        "source_file": original_name,
+                        "upload_timestamp": current_time,
+                        "collection": "General",
+                        "section": f"Page {doc.metadata.get('page', i) + 1}"
+                    })
+                
+                chunks = text_splitter.split_documents(documents)
+                new_chunks.extend(chunks)
+                
+                metadata["documents"].append({
+                    "id": doc_id,
+                    "name": original_name,
+                    "collection": "General",
+                    "upload_time": current_time,
+                    "chunk_count": len(chunks)
+                })
+                updated = True
+            except Exception as e:
+                print(f"Failed to sync {filename}: {e}")
+
+    if updated:
+        save_docs_metadata(metadata)
+        
+        global vector_store, bm25_retriever, all_chunks
+        
+        # Update Vector Store
+        if os.path.exists(VECTOR_DB_DIR):
+            if vector_store is None:
+                vector_store = FAISS.load_local(VECTOR_DB_DIR, embeddings, allow_dangerous_deserialization=True)
+            if new_chunks:
+                vector_store.add_documents(new_chunks)
+        else:
+            if new_chunks:
+                vector_store = FAISS.from_documents(new_chunks, embeddings)
+        
+        if vector_store:
+            vector_store.save_local(VECTOR_DB_DIR)
+        
+        # Rebuild BM25
+        all_docs = []
+        for d in metadata["documents"]:
+            d_path = os.path.join(UPLOAD_DIR, f"{d['id']}_{d['name']}")
+            if os.path.exists(d_path):
+                l = PyPDFLoader(d_path)
+                docs = l.load()
+                all_docs.extend(text_splitter.split_documents(docs))
+        
+        all_chunks = all_docs
+        if all_chunks:
+            bm25_retriever = BM25Retriever.from_documents(all_chunks)
+            bm25_retriever.k = 3
+        print("Sync complete.")
 
 # Initialize embeddings using Google Generative AI
 embeddings = GoogleGenerativeAIEmbeddings(
@@ -333,4 +434,4 @@ async def delete_document(doc_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
