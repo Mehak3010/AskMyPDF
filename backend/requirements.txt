@@ -10,3 +10,8 @@ python-multipart
 sentence-transformers
 python-dotenv
 langchain-google-genai
+pytesseract
+pdf2image
+tabula-py
+pillow
+opencv-python

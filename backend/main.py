@@ -17,6 +17,12 @@ from dotenv import load_dotenv
 import shutil
 import asyncio
 import time
+from PIL import Image
+import pytesseract
+from pdf2image import convert_from_path
+import tabula
+import pandas as pd
+from langchain_core.messages import HumanMessage
 
 # Load environment variables from .env file
 load_dotenv()
@@ -73,35 +79,29 @@ def sync_existing_files():
         if not filename.endswith(".pdf"):
             continue
             
-        # Check if file follows the {uuid}_{original_name} pattern
         if "_" in filename:
             parts = filename.split("_", 1)
             doc_id = parts[0]
             original_name = parts[1]
         else:
-            # If it's just a raw file, give it an ID and rename it to match pattern
             doc_id = str(uuid.uuid4())
             original_name = filename
             new_filename = f"{doc_id}_{filename}"
-            old_path = os.path.join(UPLOAD_DIR, filename)
-            new_path = os.path.join(UPLOAD_DIR, new_filename)
-            os.rename(old_path, new_path)
+            os.rename(os.path.join(UPLOAD_DIR, filename), os.path.join(UPLOAD_DIR, new_filename))
             filename = new_filename
 
         if doc_id not in existing_ids:
-            print(f"Syncing new file found in uploads: {original_name}")
+            print(f"Syncing new file: {original_name}")
             try:
                 file_path = os.path.join(UPLOAD_DIR, filename)
-                loader = PyPDFLoader(file_path)
-                documents = loader.load()
+                documents = extract_advanced_content(file_path)
                 
-                for i, doc in enumerate(documents):
+                for doc in documents:
                     doc.metadata.update({
                         "doc_id": doc_id,
                         "source_file": original_name,
                         "upload_timestamp": current_time,
-                        "collection": "General",
-                        "section": f"Page {doc.metadata.get('page', i) + 1}"
+                        "collection": "General"
                     })
                 
                 chunks = text_splitter.split_documents(documents)
@@ -120,10 +120,8 @@ def sync_existing_files():
 
     if updated:
         save_docs_metadata(metadata)
-        
         global vector_store, bm25_retriever, all_chunks
         
-        # Update Vector Store
         if os.path.exists(VECTOR_DB_DIR):
             if vector_store is None:
                 vector_store = FAISS.load_local(VECTOR_DB_DIR, embeddings, allow_dangerous_deserialization=True)
@@ -136,13 +134,12 @@ def sync_existing_files():
         if vector_store:
             vector_store.save_local(VECTOR_DB_DIR)
         
-        # Rebuild BM25
+        # Rebuild BM25 for hybrid search
         all_docs = []
         for d in metadata["documents"]:
             d_path = os.path.join(UPLOAD_DIR, f"{d['id']}_{d['name']}")
             if os.path.exists(d_path):
-                l = PyPDFLoader(d_path)
-                docs = l.load()
+                docs = extract_advanced_content(d_path)
                 all_docs.extend(text_splitter.split_documents(docs))
         
         all_chunks = all_docs
@@ -150,6 +147,58 @@ def sync_existing_files():
             bm25_retriever = BM25Retriever.from_documents(all_chunks)
             bm25_retriever.k = 3
         print("Sync complete.")
+
+def extract_advanced_content(file_path):
+    """
+    Phase 6: Advanced Extraction
+    1. Standard PDF Text
+    2. OCR for scanned pages/images
+    3. Table extraction
+    """
+    all_content = []
+    
+    # 1. Standard Extraction
+    try:
+        loader = PyPDFLoader(file_path)
+        standard_docs = loader.load()
+        if any(doc.page_content.strip() for doc in standard_docs):
+            all_content.extend(standard_docs)
+            print(f"Standard extraction successful for {file_path}")
+    except Exception as e:
+        print(f"Standard extraction failed: {e}")
+
+    # 2. OCR Fallback (if standard extraction yielded very little text)
+    total_text = "".join(doc.page_content for doc in all_content)
+    if len(total_text.strip()) < 100: # Threshold for "scanned" PDF
+        print(f"Low text detected ({len(total_text)} chars). Running OCR...")
+        try:
+            images = convert_from_path(file_path)
+            for i, image in enumerate(images):
+                ocr_text = pytesseract.image_to_string(image)
+                from langchain_core.documents import Document
+                all_content.append(Document(
+                    page_content=ocr_text,
+                    metadata={"page": i, "source": file_path, "type": "ocr"}
+                ))
+        except Exception as e:
+            print(f"OCR failed: {e}. Ensure Tesseract and poppler are installed.")
+
+    # 3. Table Extraction
+    try:
+        print(f"Extracting tables from {file_path}...")
+        tables = tabula.read_pdf(file_path, pages='all', multiple_tables=True)
+        for i, df in enumerate(tables):
+            if not df.empty:
+                table_text = f"Table Data:\n{df.to_markdown(index=False)}"
+                from langchain_core.documents import Document
+                all_content.append(Document(
+                    page_content=table_text,
+                    metadata={"page": "unknown", "source": file_path, "type": "table"}
+                ))
+    except Exception as e:
+        print(f"Table extraction failed: {e}")
+
+    return all_content
 
 # Initialize embeddings using Google Generative AI
 embeddings = GoogleGenerativeAIEmbeddings(

@@ -53,6 +53,7 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         <DocumentLibrary 
           onSelectCollection={setActiveCollection} 
+          onSelectDocument={handleUploadSuccess}
           activeCollection={activeCollection} 
         />
         

@@ -15,11 +15,13 @@ interface Document {
 
 interface DocumentLibraryProps {
   onSelectCollection: (collection: string | null) => void;
+  onSelectDocument: (name: string, url: string) => void;
   activeCollection: string | null;
 }
 
 export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({ 
   onSelectCollection, 
+  onSelectDocument,
   activeCollection 
 }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -121,7 +123,8 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
               .map((doc) => (
                 <div
                   key={doc.id}
-                  className="group flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  onClick={() => onSelectDocument(doc.name, `http://localhost:8001/uploads/${doc.id}_${doc.name}`)}
+                  className="group flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <FileText size={12} className="flex-shrink-0" />
                   <span className="truncate flex-1" title={doc.name}>{doc.name}</span>
