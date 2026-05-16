@@ -11,10 +11,18 @@ interface Message {
 }
 
 interface Props {
-  collection: string
+  filename: string
+  activeCollection: string | null
+  onNavigatePage: (page: number) => void
+  onOpenPdf: (url: string) => void
 }
 
-export function ChatView({ collection }: Props) {
+export function ChatView({
+  filename,
+  activeCollection,
+  onNavigatePage,
+  onOpenPdf,
+}: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -22,16 +30,28 @@ export function ChatView({ collection }: Props) {
   async function handleSend() {
     if (!input.trim()) return
 
+    // -----------------------------
+    // USER MESSAGE
+    // -----------------------------
+
     const userMessage: Message = {
       role: "user",
       content: input,
     }
+
+    // -----------------------------
+    // EMPTY ASSISTANT MESSAGE
+    // -----------------------------
 
     const assistantMessage: Message = {
       role: "assistant",
       content: "",
       sources: [],
     }
+
+    // -----------------------------
+    // UPDATE UI
+    // -----------------------------
 
     setMessages((prev) => [
       ...prev,
@@ -42,14 +62,19 @@ export function ChatView({ collection }: Props) {
     setLoading(true)
 
     const currentInput = input
+
     setInput("")
 
     let streamedText = ""
 
+    // -----------------------------
+    // STREAM CHAT
+    // -----------------------------
+
     await streamChat(
       currentInput,
       messages,
-      collection,
+      activeCollection || "",
 
       // STREAM TEXT
       (chunk) => {
@@ -87,50 +112,82 @@ export function ChatView({ collection }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
+      
+      {/* ----------------------------- */}
+      {/* MESSAGES */}
+      {/* ----------------------------- */}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        
         {messages.map((message, index) => (
           <div key={index}>
-            {/* USER */}
+            
+            {/* USER MESSAGE */}
 
             {message.role === "user" && (
               <div className="flex justify-end">
-                <div className="bg-blue-600 text-white p-4 rounded-2xl max-w-2xl">
+                <div
+                  className="
+                    bg-blue-600
+                    text-white
+                    p-4
+                    rounded-2xl
+                    max-w-2xl
+                  "
+                >
                   {message.content}
                 </div>
               </div>
             )}
 
-            {/* ASSISTANT */}
+            {/* ASSISTANT MESSAGE */}
 
             {message.role === "assistant" && (
               <div className="space-y-4">
-                <div className="bg-zinc-900 text-white p-4 rounded-2xl max-w-3xl prose prose-invert">
+
+                {/* AI RESPONSE */}
+
+                <div
+                  className="
+                    bg-zinc-900
+                    text-white
+                    p-4
+                    rounded-2xl
+                    max-w-3xl
+                    prose
+                    prose-invert
+                  "
+                >
                   <ReactMarkdown>
                     {message.content}
                   </ReactMarkdown>
                 </div>
 
-                {/* Sources */}
+                {/* SOURCES */}
 
                 {message.sources &&
                   message.sources.length > 0 && (
                     <div className="grid gap-3">
+                      
                       {message.sources.map(
                         (source, i) => (
                           <SourceCard
                             key={i}
                             source={source}
+                            onNavigate={onNavigatePage}
+                            onOpenPdf={onOpenPdf}
                           />
                         )
                       )}
+
                     </div>
                   )}
               </div>
             )}
           </div>
         ))}
+
+        {/* LOADING */}
 
         {loading && (
           <div className="text-zinc-500 text-sm">
@@ -139,9 +196,19 @@ export function ChatView({ collection }: Props) {
         )}
       </div>
 
-      {/* Input */}
+      {/* ----------------------------- */}
+      {/* INPUT */}
+      {/* ----------------------------- */}
 
-      <div className="border-t border-zinc-800 p-4 flex gap-3">
+      <div
+        className="
+          border-t
+          border-zinc-800
+          p-4
+          flex
+          gap-3
+        "
+      >
         <input
           value={input}
           onChange={(e) =>
@@ -169,6 +236,7 @@ export function ChatView({ collection }: Props) {
             text-white
             px-6
             rounded-xl
+            transition
           "
         >
           Send
