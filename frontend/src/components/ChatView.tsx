@@ -5,10 +5,9 @@ import {
 } from "react"
 
 import ReactMarkdown from "react-markdown"
-
 import { streamChat } from "../services/chat"
-
 import { SourceCard } from "./sourceCard"
+import { StudyTools } from "./StydyTools"
 
 interface Message {
   role: "user" | "assistant"
@@ -192,6 +191,12 @@ export function ChatView({
               explore insights, generate summaries,
               and navigate documents using AI.
             </p>
+
+            <StudyTools
+              onSelect={(prompt: string) =>
+                setInput(prompt)
+              }
+            />
 
             {/* QUICK PROMPTS */}
 
