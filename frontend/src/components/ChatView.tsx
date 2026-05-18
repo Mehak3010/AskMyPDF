@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown"
 import { streamChat } from "../services/chat"
 import { SourceCard } from "./sourceCard"
 import { StudyTools } from "./StydyTools"
+import { AIActionButtons } from "./AiActionButtons"
 
 interface Message {
   role: "user" | "assistant"
@@ -28,19 +29,21 @@ export function ChatView({
   onNavigatePage,
   onOpenPdf,
 }: Props) {
-  // -----------------------------
+  // =============================
   // STATE
-  // -----------------------------
+  // =============================
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] =
+    useState<Message[]>([])
 
   const [input, setInput] = useState("")
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] =
+    useState(false)
 
-  // -----------------------------
+  // =============================
   // AUTO SCROLL
-  // -----------------------------
+  // =============================
 
   const messagesEndRef =
     useRef<HTMLDivElement | null>(null)
@@ -51,9 +54,9 @@ export function ChatView({
     })
   }, [messages])
 
-  // -----------------------------
+  // =============================
   // SEND MESSAGE
-  // -----------------------------
+  // =============================
 
   async function handleSend() {
     if (!input.trim()) return
@@ -134,7 +137,7 @@ export function ChatView({
 
   return (
     <div className="flex flex-col h-full">
-      
+
       {/* ============================= */}
       {/* MESSAGES */}
       {/* ============================= */}
@@ -192,6 +195,8 @@ export function ChatView({
               and navigate documents using AI.
             </p>
 
+            {/* STUDY TOOLS */}
+
             <StudyTools
               onSelect={(prompt: string) =>
                 setInput(prompt)
@@ -200,7 +205,7 @@ export function ChatView({
 
             {/* QUICK PROMPTS */}
 
-            <div className="grid gap-3 w-full max-w-2xl">
+            <div className="grid gap-3 w-full max-w-2xl mt-6">
 
               {[
                 "Summarize this document",
@@ -208,7 +213,7 @@ export function ChatView({
                 "Generate viva questions",
                 "Explain this PDF simply",
               ].map((prompt) => (
-                
+
                 <button
                   key={prompt}
                   onClick={() => setInput(prompt)}
@@ -288,7 +293,8 @@ export function ChatView({
                     {/* STREAMING CURSOR */}
 
                     {loading &&
-                      index === messages.length - 1 && (
+                      index ===
+                        messages.length - 1 && (
                         <span
                           className="
                             inline-block
@@ -301,8 +307,18 @@ export function ChatView({
                           "
                         />
                       )}
-
                   </div>
+
+                  {/* AI ACTION BUTTONS */}
+
+                  <AIActionButtons
+                    content={message.content}
+                    onAction={(
+                      prompt: string
+                    ) => {
+                      setInput(prompt)
+                    }}
+                  />
                 </div>
 
                 {/* SOURCES */}
@@ -344,11 +360,13 @@ export function ChatView({
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200" />
             </div>
 
-            <span>AI is thinking...</span>
+            <span>
+              AI is thinking...
+            </span>
           </div>
         )}
 
-        {/* AUTO SCROLL TARGET */}
+        {/* AUTO SCROLL */}
 
         <div ref={messagesEndRef} />
       </div>
