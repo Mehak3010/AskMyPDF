@@ -5,6 +5,9 @@ import shutil
 import asyncio
 import time
 
+import pytesseract
+from pdf2image import convert_from_path
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -154,7 +157,11 @@ def extract_advanced_content(file_path):
         print("Running OCR...")
 
         try:
-            images = convert_from_path(file_path)
+            images = convert_from_path(
+            file_path,
+            poppler_path=r"C:\poppler\Library\bin"
+            )   
+
 
             for i, image in enumerate(images):
                 ocr_text = pytesseract.image_to_string(image)
