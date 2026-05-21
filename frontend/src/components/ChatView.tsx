@@ -340,7 +340,7 @@ ${messageText}
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen overflow-hidden">
 
       {/* SIDEBAR */}
 
@@ -506,8 +506,8 @@ ${messageText}
 
                 {/* ASSISTANT */}
 
-                {message.role ===
-                  "assistant" && (
+                {message.role === "assistant" && message.content.trim()
+                .length > 0 && (
                   <div className="space-y-4">
 
                     <div
@@ -551,18 +551,20 @@ ${messageText}
 
                       {/* AI ACTIONS */}
 
-                      <AIActionButtons
-                        content={
-                          message.content
-                        }
-                        onAction={(
-                          prompt: string
-                        ) => {
-                          sendMessage(
-                            prompt
-                          )
-                        }}
-                      />
+                      {index === messages.length - 1 && (
+                        <AIActionButtons
+                          content={
+                            message.content
+                          }
+                          onAction={(
+                            prompt: string
+                          ) => {
+                            sendMessage(
+                              prompt
+                            )
+                          }}
+                        />
+                      )}
                     </div>
 
                     {/* SOURCES */}
@@ -612,7 +614,7 @@ ${messageText}
               </div>
 
               <span>
-                AI is thinking...
+                Analyzing document...
               </span>
             </div>
           )}
@@ -620,25 +622,39 @@ ${messageText}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* CLEAR CHAT */}
-
-        <div className="flex justify-end px-4 pb-2">
-
-          <button
-            onClick={() => {
-              updateMessages([])
-            }}
+        {/* ACTION BAR */}
+        {messages.length > 0 && (
+          <div
             className="
-              text-xs
-              text-zinc-500
-              hover:text-red-400
-              transition
+              flex
+              justify-between
+              px-4
+              py-3
+              border-t
+             border-zinc-800
             "
           >
-            Clear Chat
-          </button>
-        </div>
 
+            <ExportChatButton
+              messages={messages}
+            />
+
+            <button
+              onClick={() => {
+                updateMessages([])
+              }}
+              className="
+                text-xs
+              text-zinc-500
+              hover:text-red-400
+                transition
+              "
+            >
+              Clear Chat
+            </button>
+          </div>
+        )}
+        
         {/* INPUT */}
 
         <div

@@ -27,8 +27,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.retrievers import BM25Retriever
 
 from PIL import Image
-import pytesseract
-from pdf2image import convert_from_path
 import tabula
 
 from langchain_core.documents import Document
@@ -45,7 +43,11 @@ load_dotenv()
 
 app = FastAPI(title="AskMyPDF Backend")
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount(
+    "/uploads",
+    StaticFiles(directory="uploads"),
+    name="uploads"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,11 +62,15 @@ app.add_middleware(
 # =========================
 
 UPLOAD_DIR = "uploads"
+
 VECTOR_DB_DIR = "faiss_index"
+
 DOCS_METADATA_FILE = "docs_metadata.json"
+
 CACHE_DIR = "processed_chunks"
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # =========================
@@ -72,7 +78,9 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # =========================
 
 vector_store = None
+
 bm25_retriever = None
+
 all_chunks = []
 
 # =========================
@@ -81,7 +89,9 @@ all_chunks = []
 
 embeddings = GoogleGenerativeAIEmbeddings(
     model="models/embedding-001",
-    google_api_key=os.getenv("GEMINI_API_KEY")
+    google_api_key=os.getenv(
+        "GEMINI_API_KEY"
+    )
 )
 
 # =========================
@@ -90,8 +100,14 @@ embeddings = GoogleGenerativeAIEmbeddings(
 
 
 def load_docs_metadata():
-    if os.path.exists(DOCS_METADATA_FILE):
-        with open(DOCS_METADATA_FILE, "r") as f:
+
+    if os.path.exists(
+        DOCS_METADATA_FILE
+    ):
+        with open(
+            DOCS_METADATA_FILE,
+            "r"
+        ) as f:
             return json.load(f)
 
     return {
@@ -100,10 +116,17 @@ def load_docs_metadata():
     }
 
 
-
 def save_docs_metadata(metadata):
-    with open(DOCS_METADATA_FILE, "w") as f:
-        json.dump(metadata, f, indent=4)
+
+    with open(
+        DOCS_METADATA_FILE,
+        "w"
+    ) as f:
+        json.dump(
+            metadata,
+            f,
+            indent=4
+        )
 
 # =========================
 # CACHE HELPERS
@@ -111,102 +134,260 @@ def save_docs_metadata(metadata):
 
 
 def save_chunks(doc_id, chunks):
+
     import pickle
 
-    with open(f"{CACHE_DIR}/{doc_id}.pkl", "wb") as f:
+    with open(
+        f"{CACHE_DIR}/{doc_id}.pkl",
+        "wb"
+    ) as f:
         pickle.dump(chunks, f)
 
 
-
 def load_chunks(doc_id):
+
     import pickle
 
-    with open(f"{CACHE_DIR}/{doc_id}.pkl", "rb") as f:
+    with open(
+        f"{CACHE_DIR}/{doc_id}.pkl",
+        "rb"
+    ) as f:
         return pickle.load(f)
+
+# =========================
+# OCR CLEANING
+# =========================
+
+
+def clean_ocr_text(text):
+    """
+    Clean noisy OCR output
+    """
+
+    lines = text.splitlines()
+
+    cleaned_lines = []
+
+    for line in lines:
+
+        line = line.strip()
+
+        if len(line) < 2:
+            continue
+
+        cleaned_lines.append(line)
+
+    cleaned = " ".join(cleaned_lines)
+
+    cleaned = " ".join(
+        cleaned.split()
+    )
+
+    return cleaned
 
 # =========================
 # ADVANCED PDF EXTRACTION
 # =========================
 
 
-def extract_advanced_content(file_path):
+def extract_advanced_content(
+    file_path
+):
+
     all_content = []
 
-    # -------------------------
+    # =========================
     # STANDARD EXTRACTION
-    # -------------------------
+    # =========================
 
     try:
-        loader = PyPDFLoader(file_path)
+
+        loader = PyPDFLoader(
+            file_path
+        )
+
         docs = loader.load()
 
-        if any(doc.page_content.strip() for doc in docs):
-            all_content.extend(docs)
-            print("Standard extraction successful")
+        print(
+            f"Standard extraction pages: {len(docs)}"
+        )
 
-    except Exception as e:
-        print(f"Standard extraction failed: {e}")
+        # =========================
+        # SMART PAGE ANALYSIS
+        # =========================
 
-    # -------------------------
-    # OCR FALLBACK
-    # -------------------------
+        for i, doc in enumerate(docs):
 
-    total_text = "".join(doc.page_content for doc in all_content)
+            text = (
+                doc.page_content
+                .strip()
+            )
 
-    if len(total_text.strip()) < 100:
-        print("Running OCR...")
+            # =========================
+            # GOOD TEXT PAGE
+            # =========================
 
-        try:
-            images = convert_from_path(
-            file_path,
-            poppler_path=r"C:\poppler\Library\bin"
-            )   
+            if len(text) > 80:
 
+                doc.metadata.update({
+                    "extraction_type":
+                        "standard",
 
-            for i, image in enumerate(images):
-                ocr_text = pytesseract.image_to_string(image)
+                    "ocr_used": False,
+                })
 
-                all_content.append(
-                    Document(
-                        page_content=ocr_text,
-                        metadata={
-                            "page": i,
-                            "type": "ocr"
-                        }
-                    )
+                all_content.append(doc)
+
+            # =========================
+            # OCR FALLBACK
+            # =========================
+
+            else:
+
+                print(
+                    f"OCR triggered for page {i + 1}"
                 )
 
-        except Exception as e:
-            print(f"OCR failed: {e}")
+                try:
 
-    # -------------------------
+                    images = convert_from_path(
+                        file_path,
+
+                        first_page=i + 1,
+
+                        last_page=i + 1,
+
+                        poppler_path=
+                        r"C:\poppler\Library\bin"
+                    )
+
+                    if images:
+
+                        image = images[0]
+
+                        ocr_text = (
+                            pytesseract
+                            .image_to_string(
+                                image
+                            )
+                        )
+
+                        ocr_text = (
+                            clean_ocr_text(
+                                ocr_text
+                            )
+                        )
+
+                        # ONLY SAVE GOOD OCR
+
+                        if len(ocr_text) > 40:
+
+                            all_content.append(
+                                Document(
+                                    page_content=
+                                        ocr_text,
+
+                                    metadata={
+                                        "page": i,
+
+                                        "type": "ocr",
+
+                                        "ocr_used":
+                                            True,
+
+                                        "extraction_type":
+                                            "ocr"
+                                    }
+                                )
+                            )
+
+                except Exception as e:
+
+                    print(
+                        f"OCR page failed: {e}"
+                    )
+
+    except Exception as e:
+
+        print(
+            f"Standard extraction failed: {e}"
+        )
+
+    # =========================
     # TABLE EXTRACTION
-    # -------------------------
+    # =========================
 
     try:
+
         tables = tabula.read_pdf(
             file_path,
             pages="all",
             multiple_tables=True
         )
 
-        for df in tables:
+        for idx, df in enumerate(tables):
+
             if not df.empty:
-                table_text = df.to_markdown(index=False)
+
+                table_text = (
+                    df.to_markdown(
+                        index=False
+                    )
+                )
 
                 all_content.append(
                     Document(
-                        page_content=table_text,
+                        page_content=
+                            table_text,
+
                         metadata={
-                            "type": "table"
+                            "type": "table",
+
+                            "table_index":
+                                idx,
+
+                            "extraction_type":
+                                "table"
                         }
                     )
                 )
 
-    except Exception as e:
-        print(f"Table extraction failed: {e}")
+        print(
+            f"Tables extracted: {len(tables)}"
+        )
 
-    return all_content
+    except Exception as e:
+
+        print(
+            f"Table extraction failed: {e}"
+        )
+
+    # =========================
+    # REMOVE DUPLICATES
+    # =========================
+
+    unique_docs = []
+
+    seen = set()
+
+    for doc in all_content:
+
+        content = (
+            doc.page_content[:500]
+            .strip()
+        )
+
+        if content not in seen:
+
+            unique_docs.append(doc)
+
+            seen.add(content)
+
+    print(
+        f"Final extracted docs: {len(unique_docs)}"
+    )
+
+    return unique_docs
 
 # =========================
 # STARTUP SYNC
@@ -218,34 +399,61 @@ async def startup_event():
     sync_existing_files()
 
 
-
 def sync_existing_files():
-    global vector_store, bm25_retriever, all_chunks
 
+    global vector_store, bm25_retriever, all_chunks
+    
     metadata = load_docs_metadata()
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
+    text_splitter = (
+        RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200
+        )
     )
 
     all_docs = []
 
     for d in metadata["documents"]:
+
         try:
-            cached_chunks = load_chunks(d["id"])
-            all_docs.extend(cached_chunks)
+
+            cached_chunks = load_chunks(
+                d["id"]
+            )
+
+            all_docs.extend(
+                cached_chunks
+            )
 
         except Exception as e:
-            print(f"Cache loading failed: {e}")
+
+            print(
+                f"Cache loading failed: {e}"
+            )
 
     all_chunks = all_docs
 
     if all_chunks:
-        vector_store = FAISS.from_documents(all_chunks, embeddings)
-        vector_store.save_local(VECTOR_DB_DIR)
 
-        bm25_retriever = BM25Retriever.from_documents(all_chunks)
+        vector_store = (
+            FAISS.from_documents(
+                all_chunks,
+                embeddings
+            )
+        )
+
+        vector_store.save_local(
+            VECTOR_DB_DIR
+        )
+
+        bm25_retriever = (
+            BM25Retriever
+            .from_documents(
+                all_chunks
+            )
+        )
+
         bm25_retriever.k = 3
 
 # =========================
@@ -256,15 +464,21 @@ def sync_existing_files():
 @app.post("/upload")
 async def upload_pdf(
     file: UploadFile = File(...),
-    collection: str = Form("General")
+
+    collection: str = Form(
+        "General"
+    )
 ):
 
     global vector_store, bm25_retriever, all_chunks
-
-    if not file.filename.endswith(".pdf"):
+    
+    if not file.filename.endswith(
+        ".pdf"
+    ):
         raise HTTPException(
             status_code=400,
-            detail="Only PDF files allowed"
+            detail=
+                "Only PDF files allowed"
         )
 
     doc_id = str(uuid.uuid4())
@@ -275,105 +489,192 @@ async def upload_pdf(
     )
 
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
 
-        # -------------------------
+        with open(
+            file_path,
+            "wb"
+        ) as buffer:
+
+            shutil.copyfileobj(
+                file.file,
+                buffer
+            )
+
+        # =========================
         # ADVANCED EXTRACTION
-        # -------------------------
+        # =========================
 
-        documents = extract_advanced_content(file_path)
-
-        # -------------------------
-        # METADATA
-        # -------------------------
-
-        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
-
-        for i, doc in enumerate(documents):
-            doc.metadata.update({
-                "doc_id": doc_id,
-                "source_file": file.filename,
-                "upload_timestamp": current_time,
-                "collection": collection,
-                "section": f"Page {doc.metadata.get('page', i) + 1}"
-            })
-
-        # -------------------------
-        # CHUNKING
-        # -------------------------
-
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
+        documents = (
+            extract_advanced_content(
+                file_path
+            )
         )
 
-        chunks = text_splitter.split_documents(documents)
+        # =========================
+        # METADATA
+        # =========================
 
-        # -------------------------
+        current_time = time.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        for i, doc in enumerate(documents):
+
+            doc.metadata.update({
+
+                "doc_id": doc_id,
+
+                "source_file":
+                    file.filename,
+
+                "upload_timestamp":
+                    current_time,
+
+                "collection":
+                    collection,
+
+                "section":
+                    f"Page {doc.metadata.get('page', i) + 1}"
+            })
+
+        # =========================
+        # CHUNKING
+        # =========================
+
+        text_splitter = (
+            RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200
+            )
+        )
+
+        chunks = (
+            text_splitter
+            .split_documents(
+                documents
+            )
+        )
+
+        # =========================
         # SAVE CACHE
-        # -------------------------
+        # =========================
 
-        save_chunks(doc_id, chunks)
+        save_chunks(
+            doc_id,
+            chunks
+        )
 
-        # -------------------------
+        # =========================
         # VECTOR STORE
-        # -------------------------
+        # =========================
 
-        if os.path.exists(VECTOR_DB_DIR):
+        if os.path.exists(
+            VECTOR_DB_DIR
+        ):
+
             if vector_store is None:
-                vector_store = FAISS.load_local(
-                    VECTOR_DB_DIR,
-                    embeddings,
-                    allow_dangerous_deserialization=True
+
+                vector_store = (
+                    FAISS.load_local(
+                        VECTOR_DB_DIR,
+                        embeddings,
+                        allow_dangerous_deserialization=True
+                    )
                 )
 
-            vector_store.add_documents(chunks)
+            vector_store.add_documents(
+                chunks
+            )
 
         else:
-            vector_store = FAISS.from_documents(chunks, embeddings)
 
-        vector_store.save_local(VECTOR_DB_DIR)
+            vector_store = (
+                FAISS.from_documents(
+                    chunks,
+                    embeddings
+                )
+            )
 
-        # -------------------------
+        vector_store.save_local(
+            VECTOR_DB_DIR
+        )
+
+        # =========================
         # BM25 UPDATE
-        # -------------------------
+        # =========================
 
         all_chunks.extend(chunks)
 
-        bm25_retriever = BM25Retriever.from_documents(all_chunks)
+        bm25_retriever = (
+            BM25Retriever
+            .from_documents(
+                all_chunks
+            )
+        )
+
         bm25_retriever.k = 3
 
-        # -------------------------
+        # =========================
         # METADATA SAVE
-        # -------------------------
+        # =========================
 
-        metadata = load_docs_metadata()
+        metadata = (
+            load_docs_metadata()
+        )
 
         metadata["documents"].append({
+
             "id": doc_id,
+
             "name": file.filename,
-            "collection": collection,
-            "upload_time": current_time,
-            "chunk_count": len(chunks)
+
+            "collection":
+                collection,
+
+            "upload_time":
+                current_time,
+
+            "chunk_count":
+                len(chunks)
         })
 
-        if collection not in metadata["collections"]:
-            metadata["collections"].append(collection)
+        if (
+            collection
+            not in metadata["collections"]
+        ):
+            metadata["collections"].append(
+                collection
+            )
 
-        save_docs_metadata(metadata)
+        save_docs_metadata(
+            metadata
+        )
 
         return {
-            "message": "PDF uploaded successfully",
+
+            "message":
+                "PDF uploaded successfully",
+
             "doc_id": doc_id,
-            "filename": file.filename,
-            "chunks_created": len(chunks),
-            "url": f"http://localhost:8001/uploads/{doc_id}_{file.filename}"
+
+            "filename":
+                file.filename,
+
+            "chunks_created":
+                len(chunks),
+
+            "url":
+                f"http://localhost:8001/uploads/{doc_id}_{file.filename}"
         }
 
     except Exception as e:
+
         print(e)
-        raise HTTPException(status_code=500, detail=str(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 # =========================
 # DOCUMENT LIST
@@ -394,104 +695,196 @@ async def chat(payload: dict):
 
     global vector_store, bm25_retriever, all_chunks
 
-    question = payload.get("question")
-    history = payload.get("history", [])
-    collection_filter = payload.get("collection")
+    question = payload.get(
+        "question"
+    )
+
+    history = payload.get(
+        "history",
+        []
+    )
+
+    collection_filter = payload.get(
+        "collection"
+    )
 
     if not question:
-        raise HTTPException(status_code=400, detail="Question required")
+        raise HTTPException(
+            status_code=400,
+            detail="Question required"
+        )
 
     if vector_store is None:
-        raise HTTPException(status_code=400, detail="No PDFs uploaded")
+        raise HTTPException(
+            status_code=400,
+            detail="No PDFs uploaded"
+        )
 
-    # -------------------------
+    # =========================
     # MEMORY FORMAT
-    # -------------------------
+    # =========================
 
     formatted_history = "\n".join([
+
         f"User: {msg.get('user')}\nAssistant: {msg.get('assistant')}"
+
         for msg in history
     ])
 
-    # -------------------------
+    # =========================
     # FAISS SEARCH
-    # -------------------------
+    # =========================
 
     if collection_filter:
-        faiss_docs = vector_store.similarity_search(
-            question,
-            k=5,
-            filter={"collection": collection_filter}
-        )
-    else:
-        faiss_docs = vector_store.similarity_search(question, k=5)
 
-    # -------------------------
+        faiss_docs = (
+            vector_store
+            .similarity_search(
+                question,
+                k=5,
+                filter={
+                    "collection":
+                        collection_filter
+                }
+            )
+        )
+
+    else:
+
+        faiss_docs = (
+            vector_store
+            .similarity_search(
+                question,
+                k=5
+            )
+        )
+
+    # =========================
     # BM25 SEARCH
-    # -------------------------
+    # =========================
 
     bm25_docs = []
 
     if bm25_retriever:
-        bm25_docs = bm25_retriever.invoke(question)
 
-    # -------------------------
+        bm25_docs = (
+            bm25_retriever.invoke(
+                question
+            )
+        )
+
+    # =========================
     # MERGE + DEDUP
-    # -------------------------
+    # =========================
 
-    combined_docs = faiss_docs + bm25_docs
+    combined_docs = (
+        faiss_docs + bm25_docs
+    )
 
     docs = []
+
     seen = set()
 
     for doc in combined_docs:
-        if doc.page_content not in seen:
+
+        if (
+            doc.page_content
+            not in seen
+        ):
             docs.append(doc)
-            seen.add(doc.page_content)
+
+            seen.add(
+                doc.page_content
+            )
 
     docs = docs[:6]
 
     context_text = "\n\n".join([
-        doc.page_content for doc in docs
+        doc.page_content
+        for doc in docs
     ])
 
-    # -------------------------
+    # =========================
     # SOURCES
-    # -------------------------
+    # =========================
 
     sources = []
 
     for doc in docs:
+
         sources.append({
-            "content": doc.page_content[:200],
+
+            "content":
+                doc.page_content[:200],
+
             "metadata": {
-                "page": doc.metadata.get("page", 0),
-                "source": doc.metadata.get("source_file", "Unknown"),
-                "section": doc.metadata.get("section", "N/A"),
-                "collection": doc.metadata.get("collection", "General")
+
+                "page":
+                    doc.metadata.get(
+                        "page",
+                        0
+                    ),
+
+                "source":
+                    doc.metadata.get(
+                        "source_file",
+                        "Unknown"
+                    ),
+
+                "section":
+                    doc.metadata.get(
+                        "section",
+                        "N/A"
+                    ),
+
+                "collection":
+                    doc.metadata.get(
+                        "collection",
+                        "General"
+                    ),
+
+                "extraction_type":
+                    doc.metadata.get(
+                        "extraction_type",
+                        "standard"
+                    ),
+
+                "ocr_used":
+                    doc.metadata.get(
+                        "ocr_used",
+                        False
+                    )
             }
         })
 
-    # -------------------------
+    # =========================
     # GEMINI MODEL
-    # -------------------------
+    # =========================
 
     llm = ChatGoogleGenerativeAI(
+
         model="gemini-1.5-flash",
-        google_api_key=os.getenv("GEMINI_API_KEY"),
+
+        google_api_key=os.getenv(
+            "GEMINI_API_KEY"
+        ),
+
         temperature=0,
+
         streaming=True
     )
 
-    # -------------------------
+    # =========================
     # PROMPT
-    # -------------------------
+    # =========================
 
     template = """
 You are an intelligent PDF research assistant.
 
 Answer ONLY from provided context.
-If answer is unavailable, say you don't know.
+
+If answer is unavailable,
+say you don't know.
 
 Conversation History:
 {history}
@@ -503,29 +896,50 @@ Question:
 {question}
 """
 
-    prompt = ChatPromptTemplate.from_template(template)
+    prompt = (
+        ChatPromptTemplate
+        .from_template(template)
+    )
 
-    # -------------------------
+    # =========================
     # STREAMING
-    # -------------------------
+    # =========================
 
     async def generate_stream():
 
         yield json.dumps({
+
             "type": "sources",
+
             "data": sources
+
         }) + "\n"
 
-        chain = prompt | llm | StrOutputParser()
+        chain = (
+            prompt
+            | llm
+            | StrOutputParser()
+        )
 
         async for chunk in chain.astream({
-            "context": context_text,
-            "question": question,
-            "history": formatted_history
+
+            "context":
+                context_text,
+
+            "question":
+                question,
+
+            "history":
+                formatted_history
+
         }):
+
             yield json.dumps({
+
                 "type": "chunk",
+
                 "data": chunk
+
             }) + "\n"
 
     return StreamingResponse(
@@ -539,83 +953,137 @@ Question:
 
 
 @app.delete("/documents/{doc_id}")
-async def delete_document(doc_id: str):
+async def delete_document(
+    doc_id: str
+):
 
     global vector_store, bm25_retriever, all_chunks
 
-    metadata = load_docs_metadata()
+    metadata = (
+        load_docs_metadata()
+    )
 
     doc = next(
-        (d for d in metadata["documents"] if d["id"] == doc_id),
+
+        (
+            d for d in
+            metadata["documents"]
+
+            if d["id"] == doc_id
+        ),
+
         None
     )
 
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
 
-    # -------------------------
+        raise HTTPException(
+            status_code=404,
+            detail=
+                "Document not found"
+        )
+
+    # =========================
     # DELETE PDF
-    # -------------------------
+    # =========================
 
     file_path = os.path.join(
+
         UPLOAD_DIR,
+
         f"{doc_id}_{doc['name']}"
     )
 
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    # -------------------------
+    # =========================
     # DELETE CACHE
-    # -------------------------
+    # =========================
 
-    cache_file = f"{CACHE_DIR}/{doc_id}.pkl"
+    cache_file = (
+        f"{CACHE_DIR}/{doc_id}.pkl"
+    )
 
     if os.path.exists(cache_file):
         os.remove(cache_file)
 
-    # -------------------------
+    # =========================
     # UPDATE METADATA
-    # -------------------------
+    # =========================
 
     metadata["documents"] = [
-        d for d in metadata["documents"]
+
+        d for d in
+        metadata["documents"]
+
         if d["id"] != doc_id
     ]
 
-    save_docs_metadata(metadata)
+    save_docs_metadata(
+        metadata
+    )
 
-    # -------------------------
+    # =========================
     # REBUILD VECTOR STORE
-    # -------------------------
+    # =========================
 
     all_chunks = []
 
     for d in metadata["documents"]:
+
         try:
-            cached_chunks = load_chunks(d["id"])
-            all_chunks.extend(cached_chunks)
+
+            cached_chunks = load_chunks(
+                d["id"]
+            )
+
+            all_chunks.extend(
+                cached_chunks
+            )
 
         except Exception as e:
+
             print(e)
 
     if all_chunks:
-        vector_store = FAISS.from_documents(all_chunks, embeddings)
 
-        vector_store.save_local(VECTOR_DB_DIR)
+        vector_store = (
+            FAISS.from_documents(
+                all_chunks,
+                embeddings
+            )
+        )
 
-        bm25_retriever = BM25Retriever.from_documents(all_chunks)
+        vector_store.save_local(
+            VECTOR_DB_DIR
+        )
+
+        bm25_retriever = (
+            BM25Retriever
+            .from_documents(
+                all_chunks
+            )
+        )
+
         bm25_retriever.k = 3
 
     else:
+
         vector_store = None
+
         bm25_retriever = None
 
-        if os.path.exists(VECTOR_DB_DIR):
-            shutil.rmtree(VECTOR_DB_DIR)
+        if os.path.exists(
+            VECTOR_DB_DIR
+        ):
+            shutil.rmtree(
+                VECTOR_DB_DIR
+            )
 
     return {
-        "message": "Document deleted successfully"
+        "message":
+            "Document deleted successfully"
     }
 
 # =========================
@@ -624,7 +1092,11 @@ async def delete_document(doc_id: str):
 
 
 if __name__ == "__main__":
+
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8001)
-    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8001
+    )
