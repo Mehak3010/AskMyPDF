@@ -1,1 +1,19 @@
+# Uploads
+uploads/
+
+# Vector DB
+faiss_index/
+
+# Cached chunks
+processed_chunks/
+
+# Metadata
+docs_metadata.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
 .env
+venv/
