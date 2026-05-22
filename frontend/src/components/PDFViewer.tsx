@@ -1,6 +1,12 @@
-import React, { useEffect } from 'react'
+import React, {
+  useEffect,
+} from 'react'
 
-import { Worker, Viewer } from '@react-pdf-viewer/core'
+import {
+  Worker,
+  Viewer,
+  SpecialZoomLevel,
+} from '@react-pdf-viewer/core'
 
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
 
@@ -18,12 +24,14 @@ export const PDFViewer: React.FC<Props> = ({
   fileUrl,
   currentPage,
 }) => {
-  // -----------------------------
+  // =============================
   // PLUGINS
-  // -----------------------------
+  // =============================
 
   const defaultLayoutPluginInstance =
-    defaultLayoutPlugin()
+    defaultLayoutPlugin({
+      sidebarTabs: (defaultTabs) => [],
+    })
 
   const pageNavigationPluginInstance =
     pageNavigationPlugin()
@@ -31,9 +39,9 @@ export const PDFViewer: React.FC<Props> = ({
   const { jumpToPage } =
     pageNavigationPluginInstance
 
-  // -----------------------------
+  // =============================
   // PAGE NAVIGATION
-  // -----------------------------
+  // =============================
 
   useEffect(() => {
     if (currentPage >= 0) {
@@ -41,35 +49,52 @@ export const PDFViewer: React.FC<Props> = ({
     }
   }, [currentPage])
 
-  // -----------------------------
+  // =============================
   // EMPTY STATE
-  // -----------------------------
+  // =============================
 
   if (!fileUrl) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-400">
+      <div
+        className="
+          h-full
+          flex
+          items-center
+          justify-center
+          bg-[#020817]
+          text-slate-500
+        "
+      >
         No PDF selected
       </div>
     )
   }
 
-  // -----------------------------
+  // =============================
   // VIEWER
-  // -----------------------------
+  // =============================
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
-      <div className="flex-1 overflow-hidden">
-        <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+    <div
+      className="
+        absolute
+        inset-0
+        bg-[#020817]
+      "
+    >
+      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+        <div style={{ height: '100%' }}>
           <Viewer
             fileUrl={fileUrl}
             plugins={[
               defaultLayoutPluginInstance,
               pageNavigationPluginInstance,
             ]}
+            theme="dark"
+            defaultScale={SpecialZoomLevel.PageWidth}
           />
-        </Worker>
-      </div>
+        </div>
+      </Worker>
     </div>
   )
 }

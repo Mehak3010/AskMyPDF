@@ -9,23 +9,26 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #020617;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
 }
 
 body {
   margin: 0;
   display: flex;
   min-width: 320px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #root {
   width: 100%;
+  height: 100%;
 }
 
 @media (prefers-color-scheme: light) {
@@ -33,4 +36,63 @@ body {
     color: #213547;
     background-color: #ffffff;
   }
+}
+
+/* PDF Viewer Customizations */
+.rpv-core__viewer {
+  background-color: #020817 !important;
+  border: none !important;
+  height: 100% !important;
+}
+
+.rpv-default-layout__container {
+  border: none !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rpv-default-layout__main {
+  border: none !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.rpv-core__inner-pages {
+  background-color: #020817 !important;
+  height: 100% !important;
+}
+
+.rpv-core__page-layer {
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5) !important;
+  margin: 0 auto !important;
+}
+
+/* Scrollbar Hiding */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Scrollbar for Chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(63, 63, 70, 0.5);
+  border-radius: 10px;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(82, 82, 91, 0.8);
+}
+
+.rpv-core__canvas-layer {
+  background-color: #020817 !important;
 }

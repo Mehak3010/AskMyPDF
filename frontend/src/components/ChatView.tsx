@@ -340,27 +340,11 @@ ${messageText}
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-
-      {/* SIDEBAR */}
-
-      <ConversationSidebar
-        sessions={sessions}
-        activeSessionId={
-          activeSessionId
-        }
-        onSelect={
-          setActiveSessionId
-        }
-        onNewChat={
-          createNewChat
-        }
-        onDelete={deleteChat}
-      />
+    <div className="flex h-full w-full overflow-hidden bg-[#0b1120]">
 
       {/* MAIN CHAT */}
 
-      <div className="flex flex-col flex-1 h-full">
+      <div className="flex flex-col flex-1 h-full min-w-0">
 
         {/* AI MODES */}
 
@@ -374,7 +358,7 @@ ${messageText}
 
         {/* MESSAGES */}
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 chat-scrollbar">
 
           {/* EMPTY STATE */}
 
@@ -435,7 +419,7 @@ ${messageText}
 
               {/* QUICK PROMPTS */}
 
-              <div className="grid gap-3 w-full max-w-2xl mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-6">
 
                 {[
                   "Summarize this document",
@@ -451,23 +435,26 @@ ${messageText}
                       )
                     }
                     className="
-                      bg-zinc-900
+                      bg-zinc-900/50
                       hover:bg-zinc-800
                       border
-                      border-zinc-800
+                      border-zinc-800/50
                       rounded-2xl
                       p-4
                       text-left
-                      transition
+                      transition-all
+                      duration-200
+                      hover:scale-[1.02]
+                      active:scale-[0.98]
+                      group
                     "
                   >
-                    <div className="text-white font-medium">
+                    <div className="text-white font-medium group-hover:text-blue-400 transition-colors">
                       {prompt}
                     </div>
 
                     <div className="text-zinc-500 text-sm mt-1">
-                      Click to use this
-                      prompt
+                      Tap to use this prompt
                     </div>
                   </button>
                 ))}
@@ -479,125 +466,96 @@ ${messageText}
 
           {messages.map(
             (message, index) => (
-              <div key={index}>
+              <div key={index} className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
 
-                {/* USER */}
-
-                {message.role ===
-                  "user" && (
-                  <div className="flex justify-end">
-
-                    <div
-                      className="
-                        bg-blue-600
-                        text-white
-                        p-4
-                        rounded-2xl
-                        max-w-2xl
-                      "
-                    >
-                      {
-                        message.content
-                      }
-                    </div>
-
+                <div className={`flex gap-3 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  
+                  {/* AVATAR */}
+                  <div className={`
+                    w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
+                    ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-blue-400 border border-zinc-700'}
+                  `}>
+                    {message.role === 'user' ? 'U' : 'AI'}
                   </div>
-                )}
 
-                {/* ASSISTANT */}
-
-                {message.role === "assistant" && message.content.trim()
-                .length > 0 && (
-                  <div className="space-y-4">
-
-                    <div
-                      className="
-                        bg-zinc-900
-                        text-white
-                        p-4
-                        rounded-2xl
-                        max-w-3xl
-                        prose
-                        prose-invert
-                      "
-                    >
-                      <div className="relative">
-
-                        <ReactMarkdown>
-                          {
-                            message.content
-                          }
-                        </ReactMarkdown>
-
-                        {/* CURSOR */}
-
-                        {loading &&
-                          index ===
-                            messages.length -
-                              1 && (
-                            <span
-                              className="
-                                inline-block
-                                w-2
-                                h-5
-                                bg-blue-500
-                                ml-1
-                                animate-pulse
-                                rounded-sm
-                              "
-                            />
-                          )}
+                  {/* BUBBLE */}
+                  <div className="flex flex-col gap-2">
+                    
+                    {/* USER MESSAGE */}
+                    {message.role === "user" && (
+                      <div
+                        className="
+                          bg-blue-600
+                          text-white
+                          p-4
+                          rounded-2xl
+                          rounded-tr-none
+                          shadow-lg
+                          shadow-blue-900/20
+                        "
+                      >
+                        {message.content}
                       </div>
+                    )}
 
-                      {/* AI ACTIONS */}
+                    {/* ASSISTANT MESSAGE */}
+                    {message.role === "assistant" && message.content.trim().length > 0 && (
+                      <div className="space-y-4">
+                        <div
+                          className="
+                            bg-zinc-900/50
+                            backdrop-blur-sm
+                            text-white
+                            p-4
+                            rounded-2xl
+                            rounded-tl-none
+                            border
+                            border-zinc-800
+                            prose
+                            prose-invert
+                            max-w-none
+                          "
+                        >
+                          <div className="relative">
+                            <ReactMarkdown>
+                              {message.content}
+                            </ReactMarkdown>
 
-                      {index === messages.length - 1 && (
-                        <AIActionButtons
-                          content={
-                            message.content
-                          }
-                          onAction={(
-                            prompt: string
-                          ) => {
-                            sendMessage(
-                              prompt
-                            )
-                          }}
-                        />
-                      )}
-                    </div>
+                            {/* CURSOR */}
+                            {loading && index === messages.length - 1 && (
+                              <span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse rounded-sm" />
+                            )}
+                          </div>
 
-                    {/* SOURCES */}
-
-                    {message.sources &&
-                      message.sources
-                        .length >
-                        0 && (
-                        <div className="grid gap-3">
-
-                          {message.sources.map(
-                            (
-                              source,
-                              i
-                            ) => (
-                              <SourceCard
-                                key={i}
-                                source={
-                                  source
-                                }
-                                onNavigate={
-                                  onNavigatePage
-                                }
-                                onOpenPdf={
-                                  onOpenPdf
-                                }
+                          {/* AI ACTIONS */}
+                          {index === messages.length - 1 && !loading && (
+                            <div className="mt-4 pt-4 border-t border-zinc-800/50">
+                              <AIActionButtons
+                                content={message.content}
+                                onAction={(prompt: string) => sendMessage(prompt)}
                               />
-                            )
+                            </div>
                           )}
                         </div>
-                      )}
+
+                        {/* SOURCES */}
+                        {message.sources && message.sources.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {message.sources.map((source, i) => (
+                              <div key={i} className="max-w-xs">
+                                <SourceCard
+                                  source={source}
+                                  onNavigate={onNavigatePage}
+                                  onOpenPdf={onOpenPdf}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )
           )}
@@ -657,55 +615,66 @@ ${messageText}
         
         {/* INPUT */}
 
-        <div
-          className="
-            border-t
-            border-zinc-800
-            p-4
-            flex
-            gap-3
-          "
-        >
-          <input
-            value={input}
-            onChange={(e) =>
-              setInput(
-                e.target.value
-              )
-            }
-
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSend()
-              }
-            }}
-
-            placeholder="Ask something..."
-            className="
-              flex-1
-            bg-zinc-900
-              border
-            border-zinc-700
-              rounded-xl
-              px-4
-              py-3
-            text-white
-              outline-none
-            "
-          />
-          <button
-            onClick={handleSend}
-            className="
-              bg-blue-600
-              hover:bg-blue-700
-              text-white
-              px-6
-              rounded-xl
-              transition
-            "
-          >
-            Send
-          </button>
+        <div className="p-4 bg-[#0b1120] border-t border-zinc-800">
+          <div className="max-w-4xl mx-auto relative flex items-end gap-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-2 focus-within:border-blue-500/50 transition-all duration-200">
+            <textarea
+              rows={1}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = e.target.scrollHeight + 'px'
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
+              placeholder="Ask something..."
+              className="
+                flex-1
+                bg-transparent
+                text-white
+                px-3
+                py-2
+                outline-none
+                resize-none
+                max-h-32
+                scrollbar-hide
+              "
+              style={{ minHeight: '44px' }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || loading}
+              className={`
+                p-2.5
+                rounded-xl
+                transition-all
+                duration-200
+                ${input.trim() && !loading 
+                  ? 'bg-blue-600 text-white hover:bg-blue-500 scale-100' 
+                  : 'bg-zinc-800 text-zinc-500 scale-95 opacity-50 cursor-not-allowed'}
+              `}
+            >
+              <svg 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="w-5 h-5"
+              >
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div className="text-[10px] text-zinc-500 text-center mt-2">
+            AskMyPDF can make mistakes. Check important info.
+          </div>
         </div>
       </div>
     </div>

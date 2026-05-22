@@ -2,34 +2,66 @@ import os
 import json
 import uuid
 import shutil
-import asyncio
 import time
 
-import pytesseract
-from pdf2image import convert_from_path
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    HTTPException,
+    Form,
+)
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
+
+from fastapi.responses import (
+    StreamingResponse,
+)
+
+from fastapi.staticfiles import (
+    StaticFiles,
+)
 
 from dotenv import load_dotenv
 
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+# =========================
+# LANGCHAIN
+# =========================
+
+from langchain_community.document_loaders import (
+    PyPDFLoader,
+)
+
+from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter,
+)
+
 from langchain_google_genai import (
     GoogleGenerativeAIEmbeddings,
     ChatGoogleGenerativeAI,
 )
-from langchain_community.vectorstores import FAISS
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.retrievers import BM25Retriever
 
-from PIL import Image
-import tabula
+from langchain_community.vectorstores import (
+    FAISS,
+)
 
-from langchain_core.documents import Document
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+)
+
+from langchain_core.output_parsers import (
+    StrOutputParser,
+)
+
+from langchain_community.retrievers import (
+    BM25Retriever,
+)
+
+from langchain_core.documents import (
+    Document,
+)
 
 # =========================
 # LOAD ENV
@@ -41,7 +73,9 @@ load_dotenv()
 # APP CONFIG
 # =========================
 
-app = FastAPI(title="AskMyPDF Backend")
+app = FastAPI(
+    title="AskMyPDF Backend"
+)
 
 app.mount(
     "/uploads",
@@ -65,13 +99,21 @@ UPLOAD_DIR = "uploads"
 
 VECTOR_DB_DIR = "faiss_index"
 
-DOCS_METADATA_FILE = "docs_metadata.json"
+DOCS_METADATA_FILE = (
+    "docs_metadata.json"
+)
 
 CACHE_DIR = "processed_chunks"
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(
+    UPLOAD_DIR,
+    exist_ok=True
+)
 
-os.makedirs(CACHE_DIR, exist_ok=True)
+os.makedirs(
+    CACHE_DIR,
+    exist_ok=True
+)
 
 # =========================
 # GLOBALS
@@ -87,10 +129,14 @@ all_chunks = []
 # EMBEDDINGS
 # =========================
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001",
-    google_api_key=os.getenv(
-        "GEMINI_API_KEY"
+embeddings = (
+    GoogleGenerativeAIEmbeddings(
+        model=
+            "models/text-embedding-004",
+
+        google_api_key=os.getenv(
+            "GEMINI_API_KEY"
+        )
     )
 )
 
@@ -104,10 +150,12 @@ def load_docs_metadata():
     if os.path.exists(
         DOCS_METADATA_FILE
     ):
+
         with open(
             DOCS_METADATA_FILE,
             "r"
         ) as f:
+
             return json.load(f)
 
     return {
@@ -122,6 +170,7 @@ def save_docs_metadata(metadata):
         DOCS_METADATA_FILE,
         "w"
     ) as f:
+
         json.dump(
             metadata,
             f,
@@ -133,7 +182,10 @@ def save_docs_metadata(metadata):
 # =========================
 
 
-def save_chunks(doc_id, chunks):
+def save_chunks(
+    doc_id,
+    chunks
+):
 
     import pickle
 
@@ -141,7 +193,11 @@ def save_chunks(doc_id, chunks):
         f"{CACHE_DIR}/{doc_id}.pkl",
         "wb"
     ) as f:
-        pickle.dump(chunks, f)
+
+        pickle.dump(
+            chunks,
+            f
+        )
 
 
 def load_chunks(doc_id):
@@ -152,53 +208,17 @@ def load_chunks(doc_id):
         f"{CACHE_DIR}/{doc_id}.pkl",
         "rb"
     ) as f:
+
         return pickle.load(f)
 
 # =========================
-# OCR CLEANING
+# PDF EXTRACTION
 # =========================
 
 
-def clean_ocr_text(text):
-    """
-    Clean noisy OCR output
-    """
-
-    lines = text.splitlines()
-
-    cleaned_lines = []
-
-    for line in lines:
-
-        line = line.strip()
-
-        if len(line) < 2:
-            continue
-
-        cleaned_lines.append(line)
-
-    cleaned = " ".join(cleaned_lines)
-
-    cleaned = " ".join(
-        cleaned.split()
-    )
-
-    return cleaned
-
-# =========================
-# ADVANCED PDF EXTRACTION
-# =========================
-
-
-def extract_advanced_content(
+def extract_pdf_content(
     file_path
 ):
-
-    all_content = []
-
-    # =========================
-    # STANDARD EXTRACTION
-    # =========================
 
     try:
 
@@ -208,13 +228,7 @@ def extract_advanced_content(
 
         docs = loader.load()
 
-        print(
-            f"Standard extraction pages: {len(docs)}"
-        )
-
-        # =========================
-        # SMART PAGE ANALYSIS
-        # =========================
+        cleaned_docs = []
 
         for i, doc in enumerate(docs):
 
@@ -223,171 +237,36 @@ def extract_advanced_content(
                 .strip()
             )
 
-            # =========================
-            # GOOD TEXT PAGE
-            # =========================
+            # SKIP EMPTY PAGES
 
-            if len(text) > 80:
+            if len(text) < 30:
+                continue
 
-                doc.metadata.update({
-                    "extraction_type":
-                        "standard",
+            doc.metadata.update({
 
-                    "ocr_used": False,
-                })
+                "page": i,
 
-                all_content.append(doc)
+                "ocr_used": False,
 
-            # =========================
-            # OCR FALLBACK
-            # =========================
+                "extraction_type":
+                    "standard"
+            })
 
-            else:
+            cleaned_docs.append(doc)
 
-                print(
-                    f"OCR triggered for page {i + 1}"
-                )
+        print(
+            f"Pages extracted: {len(cleaned_docs)}"
+        )
 
-                try:
-
-                    images = convert_from_path(
-                        file_path,
-
-                        first_page=i + 1,
-
-                        last_page=i + 1,
-
-                        poppler_path=
-                        r"C:\poppler\Library\bin"
-                    )
-
-                    if images:
-
-                        image = images[0]
-
-                        ocr_text = (
-                            pytesseract
-                            .image_to_string(
-                                image
-                            )
-                        )
-
-                        ocr_text = (
-                            clean_ocr_text(
-                                ocr_text
-                            )
-                        )
-
-                        # ONLY SAVE GOOD OCR
-
-                        if len(ocr_text) > 40:
-
-                            all_content.append(
-                                Document(
-                                    page_content=
-                                        ocr_text,
-
-                                    metadata={
-                                        "page": i,
-
-                                        "type": "ocr",
-
-                                        "ocr_used":
-                                            True,
-
-                                        "extraction_type":
-                                            "ocr"
-                                    }
-                                )
-                            )
-
-                except Exception as e:
-
-                    print(
-                        f"OCR page failed: {e}"
-                    )
+        return cleaned_docs
 
     except Exception as e:
 
         print(
-            f"Standard extraction failed: {e}"
+            f"PDF extraction failed: {e}"
         )
 
-    # =========================
-    # TABLE EXTRACTION
-    # =========================
-
-    try:
-
-        tables = tabula.read_pdf(
-            file_path,
-            pages="all",
-            multiple_tables=True
-        )
-
-        for idx, df in enumerate(tables):
-
-            if not df.empty:
-
-                table_text = (
-                    df.to_markdown(
-                        index=False
-                    )
-                )
-
-                all_content.append(
-                    Document(
-                        page_content=
-                            table_text,
-
-                        metadata={
-                            "type": "table",
-
-                            "table_index":
-                                idx,
-
-                            "extraction_type":
-                                "table"
-                        }
-                    )
-                )
-
-        print(
-            f"Tables extracted: {len(tables)}"
-        )
-
-    except Exception as e:
-
-        print(
-            f"Table extraction failed: {e}"
-        )
-
-    # =========================
-    # REMOVE DUPLICATES
-    # =========================
-
-    unique_docs = []
-
-    seen = set()
-
-    for doc in all_content:
-
-        content = (
-            doc.page_content[:500]
-            .strip()
-        )
-
-        if content not in seen:
-
-            unique_docs.append(doc)
-
-            seen.add(content)
-
-    print(
-        f"Final extracted docs: {len(unique_docs)}"
-    )
-
-    return unique_docs
+        return []
 
 # =========================
 # STARTUP SYNC
@@ -396,20 +275,18 @@ def extract_advanced_content(
 
 @app.on_event("startup")
 async def startup_event():
+
     sync_existing_files()
 
 
 def sync_existing_files():
 
-    global vector_store, bm25_retriever, all_chunks
-    
-    metadata = load_docs_metadata()
+    global vector_store
+    global bm25_retriever
+    global all_chunks
 
-    text_splitter = (
-        RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
+    metadata = (
+        load_docs_metadata()
     )
 
     all_docs = []
@@ -418,8 +295,10 @@ def sync_existing_files():
 
         try:
 
-            cached_chunks = load_chunks(
-                d["id"]
+            cached_chunks = (
+                load_chunks(
+                    d["id"]
+                )
             )
 
             all_docs.extend(
@@ -470,11 +349,14 @@ async def upload_pdf(
     )
 ):
 
-    global vector_store, bm25_retriever, all_chunks
-    
+    global vector_store
+    global bm25_retriever
+    global all_chunks
+
     if not file.filename.endswith(
         ".pdf"
     ):
+
         raise HTTPException(
             status_code=400,
             detail=
@@ -490,6 +372,8 @@ async def upload_pdf(
 
     try:
 
+        # SAVE FILE
+
         with open(
             file_path,
             "wb"
@@ -501,21 +385,31 @@ async def upload_pdf(
             )
 
         # =========================
-        # ADVANCED EXTRACTION
+        # EXTRACT CONTENT
         # =========================
 
         documents = (
-            extract_advanced_content(
+            extract_pdf_content(
                 file_path
             )
         )
+
+        if not documents:
+
+            raise HTTPException(
+                status_code=400,
+                detail=
+                    "Could not extract text from PDF"
+            )
 
         # =========================
         # METADATA
         # =========================
 
-        current_time = time.strftime(
-            "%Y-%m-%d %H:%M:%S"
+        current_time = (
+            time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         )
 
         for i, doc in enumerate(documents):
@@ -534,7 +428,7 @@ async def upload_pdf(
                     collection,
 
                 "section":
-                    f"Page {doc.metadata.get('page', i) + 1}"
+                    f"Page {i + 1}"
             })
 
         # =========================
@@ -543,8 +437,10 @@ async def upload_pdf(
 
         text_splitter = (
             RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200
+
+                chunk_size=1500,
+
+                chunk_overlap=100
             )
         )
 
@@ -556,7 +452,7 @@ async def upload_pdf(
         )
 
         # =========================
-        # SAVE CACHE
+        # CACHE
         # =========================
 
         save_chunks(
@@ -577,7 +473,9 @@ async def upload_pdf(
                 vector_store = (
                     FAISS.load_local(
                         VECTOR_DB_DIR,
+
                         embeddings,
+
                         allow_dangerous_deserialization=True
                     )
                 )
@@ -600,7 +498,7 @@ async def upload_pdf(
         )
 
         # =========================
-        # BM25 UPDATE
+        # BM25
         # =========================
 
         all_chunks.extend(chunks)
@@ -642,9 +540,10 @@ async def upload_pdf(
             collection
             not in metadata["collections"]
         ):
-            metadata["collections"].append(
-                collection
-            )
+
+            metadata[
+                "collections"
+            ].append(collection)
 
         save_docs_metadata(
             metadata
@@ -655,7 +554,8 @@ async def upload_pdf(
             "message":
                 "PDF uploaded successfully",
 
-            "doc_id": doc_id,
+            "doc_id":
+                doc_id,
 
             "filename":
                 file.filename,
@@ -677,23 +577,26 @@ async def upload_pdf(
         )
 
 # =========================
-# DOCUMENT LIST
+# DOCUMENTS
 # =========================
 
 
 @app.get("/documents")
 async def get_documents():
+
     return load_docs_metadata()
 
 # =========================
-# CHAT ENDPOINT
+# CHAT
 # =========================
 
 
 @app.post("/chat")
 async def chat(payload: dict):
 
-    global vector_store, bm25_retriever, all_chunks
+    global vector_store
+    global bm25_retriever
+    global all_chunks
 
     question = payload.get(
         "question"
@@ -709,19 +612,21 @@ async def chat(payload: dict):
     )
 
     if not question:
+
         raise HTTPException(
             status_code=400,
             detail="Question required"
         )
 
     if vector_store is None:
+
         raise HTTPException(
             status_code=400,
             detail="No PDFs uploaded"
         )
 
     # =========================
-    # MEMORY FORMAT
+    # HISTORY FORMAT
     # =========================
 
     formatted_history = "\n".join([
@@ -791,6 +696,7 @@ async def chat(payload: dict):
             doc.page_content
             not in seen
         ):
+
             docs.append(doc)
 
             seen.add(
@@ -800,7 +706,9 @@ async def chat(payload: dict):
     docs = docs[:6]
 
     context_text = "\n\n".join([
+
         doc.page_content
+
         for doc in docs
     ])
 
@@ -957,7 +865,9 @@ async def delete_document(
     doc_id: str
 ):
 
-    global vector_store, bm25_retriever, all_chunks
+    global vector_store
+    global bm25_retriever
+    global all_chunks
 
     metadata = (
         load_docs_metadata()
@@ -983,9 +893,7 @@ async def delete_document(
                 "Document not found"
         )
 
-    # =========================
     # DELETE PDF
-    # =========================
 
     file_path = os.path.join(
 
@@ -995,22 +903,20 @@ async def delete_document(
     )
 
     if os.path.exists(file_path):
+
         os.remove(file_path)
 
-    # =========================
     # DELETE CACHE
-    # =========================
 
     cache_file = (
         f"{CACHE_DIR}/{doc_id}.pkl"
     )
 
     if os.path.exists(cache_file):
+
         os.remove(cache_file)
 
-    # =========================
     # UPDATE METADATA
-    # =========================
 
     metadata["documents"] = [
 
@@ -1024,9 +930,7 @@ async def delete_document(
         metadata
     )
 
-    # =========================
     # REBUILD VECTOR STORE
-    # =========================
 
     all_chunks = []
 
@@ -1034,8 +938,10 @@ async def delete_document(
 
         try:
 
-            cached_chunks = load_chunks(
-                d["id"]
+            cached_chunks = (
+                load_chunks(
+                    d["id"]
+                )
             )
 
             all_chunks.extend(
@@ -1077,6 +983,7 @@ async def delete_document(
         if os.path.exists(
             VECTOR_DB_DIR
         ):
+
             shutil.rmtree(
                 VECTOR_DB_DIR
             )
