@@ -2,6 +2,7 @@ export async function streamChat(
   message: string,
   history: any[],
   collection: string,
+  mode: string,
   onChunk: (chunk: string) => void,
   onSources: (sources: any[]) => void
 ) {
@@ -14,6 +15,7 @@ export async function streamChat(
       question: message,
       history,
       collection,
+      mode,
     }),
   })
 

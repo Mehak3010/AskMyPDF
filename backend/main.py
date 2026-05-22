@@ -145,6 +145,57 @@ embeddings = (
 # =========================
 
 
+def get_mode_prompt(mode):
+
+    prompts = {
+
+        "Beginner": """
+Explain concepts simply.
+
+Use easy language.
+
+Teach step-by-step.
+
+Use analogies where possible.
+""",
+
+        "Interview": """
+Answer like a technical interview.
+
+Be concise and professional.
+
+Highlight important definitions.
+
+Mention common viva points.
+""",
+
+        "Research": """
+Provide detailed technical explanations.
+
+Use advanced terminology.
+
+Compare concepts deeply.
+
+Explain implementation details.
+""",
+
+        "Exam Prep": """
+Answer in exam-oriented format.
+
+Use bullet points.
+
+Highlight important definitions.
+
+Provide revision-friendly summaries.
+"""
+    }
+
+    return prompts.get(
+        mode,
+        prompts["Beginner"]
+    )
+
+
 def load_docs_metadata():
 
     if os.path.exists(
@@ -611,6 +662,11 @@ async def chat(payload: dict):
         "collection"
     )
 
+    mode = payload.get(
+        "mode",
+        "Beginner"
+    )
+
     if not question:
 
         raise HTTPException(
@@ -786,8 +842,11 @@ async def chat(payload: dict):
     # PROMPT
     # =========================
 
-    template = """
+    template = f"""
 You are an intelligent PDF research assistant.
+
+Response Style:
+{get_mode_prompt(mode)}
 
 Answer ONLY from provided context.
 
@@ -795,13 +854,13 @@ If answer is unavailable,
 say you don't know.
 
 Conversation History:
-{history}
+{{history}}
 
 Context:
-{context}
+{{context}}
 
 Question:
-{question}
+{{question}}
 """
 
     prompt = (

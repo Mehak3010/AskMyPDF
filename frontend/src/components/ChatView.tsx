@@ -230,9 +230,10 @@ ${messageText}
     // STREAM CHAT
 
     await streamChat(
-      modePrompt,
+      messageText,
       messages,
       activeCollection || "",
+      selectedMode,
 
       (chunk) => {
         streamedText += chunk
