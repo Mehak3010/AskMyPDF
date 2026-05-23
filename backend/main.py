@@ -43,6 +43,16 @@ from langchain_google_genai import (
     ChatGoogleGenerativeAI,
 )
 
+try:
+    from langchain_huggingface import (
+        HuggingFaceEmbeddings,
+    )
+except ImportError:
+    print("WARNING: langchain_huggingface not found. Local fallback will use langchain_community.")
+    from langchain_community.embeddings import (
+        HuggingFaceEmbeddings,
+    )
+
 from langchain_community.vectorstores import (
     FAISS,
 )
@@ -68,6 +78,13 @@ from langchain_core.documents import (
 # =========================
 
 load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    print("CRITICAL ERROR: GEMINI_API_KEY not found in environment variables.")
+else:
+    print(f"Gemini API Key loaded: {GEMINI_API_KEY[:5]}...{GEMINI_API_KEY[-5:]}")
 
 # =========================
 # APP CONFIG
@@ -129,16 +146,28 @@ all_chunks = []
 # EMBEDDINGS
 # =========================
 
-embeddings = (
-    GoogleGenerativeAIEmbeddings(
-        model=
-            "models/text-embedding-004",
-
-        google_api_key=os.getenv(
-            "GEMINI_API_KEY"
-        )
+try:
+    # TRY GEMINI EMBEDDINGS
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=GEMINI_API_KEY,
+        task_type="retrieval_document"
     )
-)
+    # TEST IF IT WORKS
+    embeddings.embed_query("test")
+    print("Embeddings initialized: Gemini (text-embedding-004)")
+except Exception as e:
+    print(f"Gemini Embeddings failed: {e}")
+    print("Falling back to local HuggingFace embeddings (all-MiniLM-L6-v2)...")
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+    except Exception as hf_err:
+        print(f"Local embeddings failed: {hf_err}")
+        print("CRITICAL: No embedding model available. RAG will not work.")
+        embeddings = None
+    print("Embeddings initialized: Local HuggingFace")
 
 # =========================
 # METADATA HELPERS
@@ -150,23 +179,23 @@ def get_mode_prompt(mode):
     prompts = {
 
         "Beginner": """
-Explain concepts simply.
+Explain simply.
 
 Use easy language.
 
 Teach step-by-step.
 
-Use analogies where possible.
+Use analogies.
 """,
 
         "Interview": """
 Answer like a technical interview.
 
-Be concise and professional.
+Be concise.
 
-Highlight important definitions.
+Highlight definitions.
 
-Mention common viva points.
+Mention viva points.
 """,
 
         "Research": """
@@ -174,19 +203,17 @@ Provide detailed technical explanations.
 
 Use advanced terminology.
 
-Compare concepts deeply.
-
-Explain implementation details.
+Explain implementation details deeply.
 """,
 
         "Exam Prep": """
-Answer in exam-oriented format.
+Answer in revision format.
 
 Use bullet points.
 
-Highlight important definitions.
+Highlight important concepts.
 
-Provide revision-friendly summaries.
+Provide exam-focused summaries.
 """
     }
 
@@ -272,7 +299,7 @@ def extract_pdf_content(
 ):
 
     try:
-
+        print(f"Starting extraction for: {file_path}")
         loader = PyPDFLoader(
             file_path
         )
@@ -336,6 +363,8 @@ def sync_existing_files():
     global bm25_retriever
     global all_chunks
 
+    print("Syncing existing files...")
+
     metadata = (
         load_docs_metadata()
     )
@@ -345,7 +374,7 @@ def sync_existing_files():
     for d in metadata["documents"]:
 
         try:
-
+            print(f"Loading chunks for doc: {d['name']}")
             cached_chunks = (
                 load_chunks(
                     d["id"]
@@ -359,32 +388,37 @@ def sync_existing_files():
         except Exception as e:
 
             print(
-                f"Cache loading failed: {e}"
+                f"Cache loading failed for {d['name']}: {e}"
             )
 
     all_chunks = all_docs
 
     if all_chunks:
-
-        vector_store = (
-            FAISS.from_documents(
-                all_chunks,
-                embeddings
+        try:
+            print(f"Initializing FAISS with {len(all_chunks)} chunks...")
+            vector_store = (
+                FAISS.from_documents(
+                    all_chunks,
+                    embeddings
+                )
             )
-        )
 
-        vector_store.save_local(
-            VECTOR_DB_DIR
-        )
-
-        bm25_retriever = (
-            BM25Retriever
-            .from_documents(
-                all_chunks
+            vector_store.save_local(
+                VECTOR_DB_DIR
             )
-        )
 
-        bm25_retriever.k = 3
+            print("Initializing BM25...")
+            bm25_retriever = (
+                BM25Retriever
+                .from_documents(
+                    all_chunks
+                )
+            )
+
+            bm25_retriever.k = 3
+            print("Sync complete.")
+        except Exception as e:
+            print(f"Vector store initialization failed: {e}")
 
 # =========================
 # UPLOAD PDF
@@ -486,6 +520,8 @@ async def upload_pdf(
         # CHUNKING
         # =========================
 
+        print(f"Splitting {len(documents)} pages into chunks...")
+
         text_splitter = (
             RecursiveCharacterTextSplitter(
 
@@ -502,6 +538,8 @@ async def upload_pdf(
             )
         )
 
+        print(f"Created {len(chunks)} chunks.")
+
         # =========================
         # CACHE
         # =========================
@@ -515,43 +553,49 @@ async def upload_pdf(
         # VECTOR STORE
         # =========================
 
-        if os.path.exists(
-            VECTOR_DB_DIR
-        ):
+        print("Updating vector store...")
 
-            if vector_store is None:
-
-                vector_store = (
-                    FAISS.load_local(
+        try:
+            if os.path.exists(VECTOR_DB_DIR):
+                print("Loading existing FAISS index...")
+                try:
+                    loaded_db = FAISS.load_local(
                         VECTOR_DB_DIR,
-
                         embeddings,
-
                         allow_dangerous_deserialization=True
                     )
-                )
-
-            vector_store.add_documents(
-                chunks
-            )
-
-        else:
-
-            vector_store = (
-                FAISS.from_documents(
+                    
+                    if vector_store is None:
+                        vector_store = loaded_db
+                    
+                    vector_store.add_documents(chunks)
+                    print("Added documents to existing FAISS index.")
+                except Exception as load_err:
+                    print(f"Failed to load existing FAISS index: {load_err}")
+                    print("Creating new FAISS index instead...")
+                    vector_store = FAISS.from_documents(
+                        chunks,
+                        embeddings
+                    )
+            else:
+                print("Creating new FAISS index...")
+                vector_store = FAISS.from_documents(
                     chunks,
                     embeddings
                 )
-            )
 
-        vector_store.save_local(
-            VECTOR_DB_DIR
-        )
+            vector_store.save_local(VECTOR_DB_DIR)
+            print("FAISS index saved successfully.")
+
+        except Exception as vector_err:
+            print(f"CRITICAL VECTOR STORE ERROR: {vector_err}")
+            raise vector_err
 
         # =========================
         # BM25
         # =========================
 
+        print("Updating BM25...")
         all_chunks.extend(chunks)
 
         bm25_retriever = (
@@ -566,6 +610,8 @@ async def upload_pdf(
         # =========================
         # METADATA SAVE
         # =========================
+
+        print("Saving metadata...")
 
         metadata = (
             load_docs_metadata()
@@ -600,6 +646,8 @@ async def upload_pdf(
             metadata
         )
 
+        print(f"Upload complete for: {file.filename}")
+
         return {
 
             "message":
@@ -620,7 +668,9 @@ async def upload_pdf(
 
     except Exception as e:
 
-        print(e)
+        import traceback
+        print("UPLOAD FAILED!")
+        print(traceback.format_exc())
 
         raise HTTPException(
             status_code=500,
@@ -676,97 +726,77 @@ async def chat(payload: dict):
 
     if vector_store is None:
 
+        print("Chat failed: Vector store is None. Ensure PDFs are uploaded correctly.")
+
         raise HTTPException(
             status_code=400,
-            detail="No PDFs uploaded"
+            detail="No PDF content processed yet. Please upload a PDF first."
         )
 
     # =========================
     # HISTORY FORMAT
     # =========================
 
-    formatted_history = "\n".join([
+    formatted_history = ""
 
-        f"User: {msg.get('user')}\nAssistant: {msg.get('assistant')}"
+    for msg in history:
 
-        for msg in history
-    ])
+        role = msg.get("role")
+
+        content = msg.get("content")
+
+        if role == "user":
+
+            formatted_history += (
+                f"User: {content}\n"
+            )
+
+        elif role == "assistant":
+
+            formatted_history += (
+                f"Assistant: {content}\n"
+            )
 
     # =========================
-    # FAISS SEARCH
+    # SEARCH
     # =========================
 
-    if collection_filter:
-
-        faiss_docs = (
-            vector_store
-            .similarity_search(
+    try:
+        if collection_filter:
+            faiss_docs = vector_store.similarity_search(
                 question,
                 k=5,
-                filter={
-                    "collection":
-                        collection_filter
-                }
+                filter={"collection": collection_filter}
             )
-        )
-
-    else:
-
-        faiss_docs = (
-            vector_store
-            .similarity_search(
+        else:
+            faiss_docs = vector_store.similarity_search(
                 question,
                 k=5
             )
-        )
 
-    # =========================
-    # BM25 SEARCH
-    # =========================
+        bm25_docs = []
+        if bm25_retriever:
+            bm25_docs = bm25_retriever.invoke(question)
 
-    bm25_docs = []
+        combined_docs = faiss_docs + bm25_docs
+        
+        docs = []
+        seen = set()
+        for doc in combined_docs:
+            if doc.page_content not in seen:
+                docs.append(doc)
+                seen.add(doc.page_content)
+        docs = docs[:6]
 
-    if bm25_retriever:
-
-        bm25_docs = (
-            bm25_retriever.invoke(
-                question
-            )
-        )
-
-    # =========================
-    # MERGE + DEDUP
-    # =========================
-
-    combined_docs = (
-        faiss_docs + bm25_docs
-    )
-
-    docs = []
-
-    seen = set()
-
-    for doc in combined_docs:
-
-        if (
-            doc.page_content
-            not in seen
-        ):
-
-            docs.append(doc)
-
-            seen.add(
-                doc.page_content
-            )
-
-    docs = docs[:6]
+    except Exception as search_err:
+        print(f"RAG Retrieval failed: {search_err}")
+        # FALLBACK: CONTINUE WITH NO CONTEXT IF SEARCH FAILS
+        docs = []
 
     context_text = "\n\n".join([
-
         doc.page_content
-
         for doc in docs
-    ])
+    ]) if docs else "No relevant context found."
 
     # =========================
     # SOURCES
@@ -829,9 +859,7 @@ async def chat(payload: dict):
 
         model="gemini-1.5-flash",
 
-        google_api_key=os.getenv(
-            "GEMINI_API_KEY"
-        ),
+        google_api_key=GEMINI_API_KEY,
 
         temperature=0,
 
@@ -843,15 +871,17 @@ async def chat(payload: dict):
     # =========================
 
     template = f"""
-You are an intelligent PDF research assistant.
+You are an intelligent AI study assistant.
 
 Response Style:
 {get_mode_prompt(mode)}
 
 Answer ONLY from provided context.
 
-If answer is unavailable,
-say you don't know.
+IMPORTANT: 
+- Cite sources using [1], [2], etc. based on the context provided.
+- ALWAYS refer to specific sections or pages if mentioned in context.
+- If answer is unavailable, say you don't know.
 
 Conversation History:
 {{history}}
@@ -874,39 +904,174 @@ Question:
 
     async def generate_stream():
 
-        yield json.dumps({
+        try:
 
-            "type": "sources",
+            yield json.dumps({
 
-            "data": sources
+                "type": "sources",
 
-        }) + "\n"
+                "data": sources
 
-        chain = (
-            prompt
-            | llm
-            | StrOutputParser()
-        )
+            }) + "\n"
 
-        async for chunk in chain.astream({
+            chain = (
+                prompt
+                | llm
+                | StrOutputParser()
+            )
 
-            "context":
-                context_text,
+            async for chunk in chain.astream({
 
-            "question":
-                question,
+                "context":
+                    context_text,
 
-            "history":
-                formatted_history
+                "question":
+                    question,
 
-        }):
+                "history":
+                    formatted_history
+
+            }):
+
+                print("STREAM:", chunk)
+
+                yield json.dumps({
+
+                    "type": "chunk",
+
+                    "data": chunk
+
+                }) + "\n"
+
+        except Exception as e:
+
+            print("STREAM ERROR:", str(e))
 
             yield json.dumps({
 
                 "type": "chunk",
 
-                "data": chunk
+                "data":
+                    f"\n\nError: {str(e)}"
 
+            }) + "\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain"
+    )
+
+# =========================
+    # SUMMARIZE
+    # =========================
+
+
+@app.post("/summarize")
+async def summarize(payload: dict):
+
+    global vector_store
+
+    collection_filter = payload.get(
+        "collection"
+    )
+
+    if vector_store is None:
+
+        raise HTTPException(
+            status_code=400,
+            detail="No PDFs uploaded"
+        )
+
+    # RETRIEVE MORE CONTEXT FOR SUMMARY
+
+    try:
+        if collection_filter:
+            docs = vector_store.similarity_search(
+                "Summary of the main concepts and key points",
+                k=15,
+                filter={"collection": collection_filter}
+            )
+        else:
+            docs = vector_store.similarity_search(
+                "Summary of the main concepts and key points",
+                k=15
+            )
+    except Exception as e:
+        print(f"Summary retrieval failed: {e}")
+        docs = []
+
+    context_text = "\n\n".join([
+        doc.page_content
+        for doc in docs
+    ]) if docs else "No content available for summary."
+
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        google_api_key=os.getenv("GEMINI_API_KEY"),
+        temperature=0,
+        streaming=True
+    )
+
+    template = """
+You are an expert academic researcher. 
+Create a STRUCTURED SUMMARY of the provided context.
+
+Follow this EXACT format:
+
+# 📝 Structured Summary
+
+## 💡 Key Concepts
+- Concept 1: Brief explanation
+- Concept 2: Brief explanation
+...
+
+## 📖 Comprehensive Summary
+Provide a 2-3 paragraph detailed summary of the main topics.
+
+## 🚀 Key Takeaways
+1. Most important point
+2. Second most important point
+...
+
+Answer ONLY from provided context.
+
+Context:
+{context}
+"""
+
+    prompt = (
+        ChatPromptTemplate
+        .from_template(template)
+    )
+
+    async def generate_stream():
+
+        try:
+
+            chain = (
+                prompt
+                | llm
+                | StrOutputParser()
+            )
+
+            async for chunk in chain.astream({
+                "context": context_text
+            }):
+
+                print("SUMMARIZE:", chunk)
+
+                yield json.dumps({
+                    "type": "chunk",
+                    "data": chunk
+                }) + "\n"
+
+        except Exception as e:
+
+            print("SUMMARIZE ERROR:", str(e))
+
+            yield json.dumps({
+                "type": "chunk",
+                "data": f"\n\nError: {str(e)}"
             }) + "\n"
 
     return StreamingResponse(

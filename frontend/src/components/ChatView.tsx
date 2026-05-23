@@ -5,7 +5,7 @@ import {
 } from "react"
 
 import ReactMarkdown from "react-markdown"
-import { streamChat } from "../services/chat"
+import { streamChat, streamSummary } from "../services/chat"
 import { SourceCard } from "./sourceCard"
 import { StudyTools } from "./StydyTools"
 import { AIActionButtons } from "./AiActionButtons"
@@ -179,6 +179,7 @@ export function ChatView({
   ) {
     if (!messageText.trim()) return
 
+    // ADD MESSAGES TO UI
     const userMessage: Message = {
       role: "user",
       content: messageText,
@@ -197,98 +198,132 @@ export function ChatView({
     ])
 
     setLoading(true)
-
     setInput("")
 
-    let streamedText = ""
+    try {
+      const response = await fetch("http://localhost:8001/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: messageText,
+          history: messages,
+          collection: activeCollection,
+          mode: selectedMode,
+        }),
+      })
 
-    // =============================
-    // AI MODES PROMPT
-    // =============================
+      if (!response.body) return
 
-    const modePrompt = `
-You are currently in ${selectedMode} mode.
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let assistantText = ""
 
-Behavior Rules:
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-- Beginner:
-Explain simply with easy examples.
+        const chunk = decoder.decode(value)
+        const lines = chunk.split("\n")
 
-- Interview:
-Provide concise technical answers.
+        for (const line of lines) {
+          if (!line.trim()) continue
 
-- Research:
-Give detailed academic explanations.
+          try {
+            const parsed = JSON.parse(line)
 
-- Exam Prep:
-Give revision-focused bullet points.
+            // AI TEXT CHUNK
+            if (parsed.type === "chunk") {
+              console.log("AI Chunk:", parsed.data)
+              assistantText += parsed.data
+              updateMessages((prev) => {
+                const updated = [...prev]
+                const assistantIndex = updated.findLastIndex(
+                  (msg) => msg.role === "assistant"
+                )
 
-User Query:
-${messageText}
-`
+                if (assistantIndex !== -1) {
+                  updated[assistantIndex] = {
+                    ...updated[assistantIndex],
+                    content: assistantText,
+                  }
+                }
+                return updated
+              })
+            }
 
-    // STREAM CHAT
+            // SOURCES
+            if (parsed.type === "sources") {
+              console.log("Sources:", parsed.data)
+              updateMessages((prev) => {
+                const updated = [...prev]
+                const assistantIndex = updated.findLastIndex(
+                  (msg) => msg.role === "assistant"
+                )
 
-    await streamChat(
-      messageText,
-      messages,
-      activeCollection || "",
-      selectedMode,
-
-      (chunk) => {
-        streamedText += chunk
-
-        updateMessages((prev) => {
-          const updated = [...prev]
-
-          updated[
-            updated.length - 1
-          ] = {
-            ...updated[
-              updated.length - 1
-            ],
-            content: streamedText,
+                if (assistantIndex !== -1) {
+                  updated[assistantIndex] = {
+                    ...updated[assistantIndex],
+                    sources: parsed.data,
+                  }
+                }
+                return updated
+              })
+            }
+          } catch (err) {
+            console.error("Parse error:", err)
           }
-
-          return updated
-        })
-      },
-
-      (sources) => {
-        updateMessages((prev) => {
-          const updated = [...prev]
-
-          updated[
-            updated.length - 1
-          ] = {
-            ...updated[
-              updated.length - 1
-            ],
-            sources,
-          }
-
-          return updated
-        })
+        }
       }
-    )
+    } catch (error) {
+      console.error("Chat error:", error)
+    }
 
     // AUTO TITLE
-
     setSessions((prev) =>
       prev.map((session) =>
-        session.id ===
-          activeSessionId &&
-        session.title === "New Chat"
+        session.id === activeSessionId && session.title === "New Chat"
           ? {
               ...session,
-              title:
-                messageText.slice(
-                  0,
-                  30
-                ) + "...",
+              title: messageText.slice(0, 30) + "...",
             }
           : session
       )
+    )
+
+    setLoading(false)
+  }
+
+  // =============================
+  // SUMMARIZE
+  // =============================
+
+  async function generateSummary() {
+    const assistantMessage: Message = {
+      role: "assistant",
+      content: "",
+      sources: [],
+    }
+
+    updateMessages((prev) => [...prev, assistantMessage])
+    setLoading(true)
+
+    let streamedText = ""
+
+    await streamSummary(
+      activeCollection || "",
+      (chunk) => {
+        streamedText += chunk
+        updateMessages((prev) => {
+          const updated = [...prev]
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: streamedText,
+          }
+          return updated
+        })
+      }
     )
 
     setLoading(false)
@@ -409,12 +444,10 @@ ${messageText}
               {/* STUDY TOOLS */}
 
               <StudyTools
-                onSelect={(
-                  prompt: string
-                ) =>
-                  sendMessage(
-                    prompt
-                  )
+                onSelect={(prompt) =>
+                  prompt === "Summarize this document"
+                    ? generateSummary()
+                    : sendMessage(prompt)
                 }
               />
 
@@ -431,9 +464,9 @@ ${messageText}
                   <button
                     key={prompt}
                     onClick={() =>
-                      sendMessage(
-                        prompt
-                      )
+                      prompt === "Summarize this document"
+                        ? generateSummary()
+                        : sendMessage(prompt)
                     }
                     className="
                       bg-zinc-900/50
@@ -500,7 +533,7 @@ ${messageText}
                     )}
 
                     {/* ASSISTANT MESSAGE */}
-                    {message.role === "assistant" && message.content.trim().length > 0 && (
+                    {message.role === "assistant" && (
                       <div className="space-y-4">
                         <div
                           className="
@@ -515,21 +548,57 @@ ${messageText}
                             prose
                             prose-invert
                             max-w-none
+                            min-h-[50px]
+                            flex
+                            items-center
                           "
                         >
-                          <div className="relative">
-                            <ReactMarkdown>
-                              {message.content}
-                            </ReactMarkdown>
+                          <div className="relative w-full">
+                            {message.content ? (
+                              <ReactMarkdown
+                                components={{
+                                  a: ({ node, ...props }) => {
+                                    const href = props.href || ""
+                                    if (href.startsWith("jump:")) {
+                                      const page = parseInt(href.split(":")[1])
+                                      return (
+                                        <button
+                                          onClick={() => onNavigatePage(page)}
+                                          className="inline-flex items-center justify-center w-5 h-5 ml-1 text-[10px] font-bold text-blue-400 border border-blue-400/30 rounded-md bg-blue-400/10 hover:bg-blue-400 hover:text-white transition-colors"
+                                        >
+                                          {props.children}
+                                        </button>
+                                      )
+                                    }
+                                    return <a {...props} />
+                                  }
+                                }}
+                              >
+                                {message.content.replace(/\[(\d+)\]/g, (match, p1) => {
+                                  const index = parseInt(p1) - 1
+                                  const source = message.sources?.[index]
+                                  if (source) {
+                                    return `[${match}](jump:${source.metadata.page})`
+                                  }
+                                  return match
+                                })}
+                              </ReactMarkdown>
+                            ) : (
+                              <div className="flex gap-1 items-center py-1">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                              </div>
+                            )}
 
                             {/* CURSOR */}
-                            {loading && index === messages.length - 1 && (
-                              <span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse rounded-sm" />
+                            {loading && index === messages.length - 1 && message.content && (
+                              <span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse rounded-sm align-middle" />
                             )}
                           </div>
 
                           {/* AI ACTIONS */}
-                          {index === messages.length - 1 && !loading && (
+                          {index === messages.length - 1 && !loading && message.content && (
                             <div className="mt-4 pt-4 border-t border-zinc-800/50">
                               <AIActionButtons
                                 content={message.content}
@@ -541,9 +610,12 @@ ${messageText}
 
                         {/* SOURCES */}
                         {message.sources && message.sources.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2 mt-2 pt-4 border-t border-zinc-800/50">
                             {message.sources.map((source, i) => (
-                              <div key={i} className="max-w-xs">
+                              <div key={i} className="flex items-start gap-2 max-w-[200px]">
+                                <span className="mt-1 flex-shrink-0 flex items-center justify-center w-5 h-5 text-[10px] font-bold text-blue-400 border border-blue-400/30 rounded-md bg-blue-400/10">
+                                  {i + 1}
+                                </span>
                                 <SourceCard
                                   source={source}
                                   onNavigate={onNavigatePage}

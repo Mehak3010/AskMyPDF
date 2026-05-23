@@ -8,8 +8,7 @@ export function StudyTools({
   const tools = [
     {
       title: "Summarize",
-      prompt:
-        "Summarize this document in detailed bullet points",
+      prompt: "Summarize this document",
     },
 
     {

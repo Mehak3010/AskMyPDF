@@ -27,31 +27,26 @@ export function SourceCard({
       className="
         w-full
         text-left
-        bg-zinc-900
-        hover:bg-zinc-800
+        bg-zinc-900/30
+        hover:bg-zinc-800/50
         border
-        border-zinc-800
-        rounded-xl
-        p-3
-        transition
+        border-zinc-800/50
+        rounded-lg
+        p-2
+        transition-all
+        group
       "
     >
       {/* FILE NAME */}
 
-      <div className="text-white font-medium">
+      <div className="text-zinc-200 text-xs font-medium truncate group-hover:text-blue-400">
         {source.metadata.source}
       </div>
 
       {/* PAGE */}
 
-      <div className="text-zinc-400 text-sm mt-1">
+      <div className="text-zinc-500 text-[10px] mt-0.5">
         Page {source.metadata.page + 1}
-      </div>
-
-      {/* COLLECTION */}
-
-      <div className="text-zinc-500 text-xs mt-2">
-        {source.metadata.collection}
       </div>
     </button>
   )
