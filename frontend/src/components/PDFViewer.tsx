@@ -5,7 +5,6 @@ import React, {
 import {
   Worker,
   Viewer,
-  SpecialZoomLevel,
 } from '@react-pdf-viewer/core'
 
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
@@ -29,9 +28,7 @@ export const PDFViewer: React.FC<Props> = ({
   // =============================
 
   const defaultLayoutPluginInstance =
-    defaultLayoutPlugin({
-      sidebarTabs: (defaultTabs) => [],
-    })
+    defaultLayoutPlugin()
 
   const pageNavigationPluginInstance =
     pageNavigationPlugin()
@@ -61,7 +58,9 @@ export const PDFViewer: React.FC<Props> = ({
           flex
           items-center
           justify-center
-          bg-[#020817]
+
+          bg-zinc-200
+
           text-slate-500
         "
       >
@@ -77,24 +76,26 @@ export const PDFViewer: React.FC<Props> = ({
   return (
     <div
       className="
-        absolute
-        inset-0
-        bg-[#020817]
+        h-full
+        w-full
+
+        bg-zinc-200
+
+        overflow-auto
       "
     >
       <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-        <div style={{ height: '100%' }}>
-          <Viewer
-            fileUrl={fileUrl}
-            plugins={[
-              defaultLayoutPluginInstance,
-              pageNavigationPluginInstance,
-            ]}
-            theme="dark"
-            defaultScale={SpecialZoomLevel.PageWidth}
-          />
-        </div>
+
+        <Viewer
+          fileUrl={fileUrl}
+
+          plugins={[
+            defaultLayoutPluginInstance,
+            pageNavigationPluginInstance,
+          ]}
+        />
+
       </Worker>
     </div>
-  )
+  ) 
 }

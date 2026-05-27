@@ -28,7 +28,8 @@ import {
 interface UploadViewProps {
   onUploadSuccess: (
     filename: string,
-    fileUrl: string
+    fileUrl: string,
+    sessionId: string
   ) => void
 }
 
@@ -57,69 +58,55 @@ export const UploadView: React.FC<
         return
 
       setIsUploading(true)
-
       setError(null)
 
       try {
-        // OPEN WORKSPACE IMMEDIATELY
-
         const firstFileUrl =
           URL.createObjectURL(
             acceptedFiles[0]
           )
 
-        onUploadSuccess(
-          acceptedFiles.length > 1
-            ? `${acceptedFiles.length} files`
-            : acceptedFiles[0].name,
+        let lastSessionId = ""
 
-          firstFileUrl
-        )
-
-        // PROCESS FILES IN BACKGROUND
-
+        // PROCESS FILES
         for (const file of acceptedFiles) {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('collection', collection)
 
-          const formData =
-            new FormData()
-
-          formData.append(
-            'file',
-            file
-          )
-
-          formData.append(
-            'collection',
-            collection
-          )
-
-          await axios.post(
+          const response = await axios.post(
             'http://localhost:8001/upload',
             formData,
             {
               headers: {
-                'Content-Type':
-                  'multipart/form-data',
+                'Content-Type': 'multipart/form-data',
               },
             }
           )
+          
+          lastSessionId = response.data.session_id
         }
 
         setIsSuccess(true)
 
-      } catch (err: any) {
+        // NOW call with session_id
+        onUploadSuccess(
+          acceptedFiles.length > 1
+            ? `${acceptedFiles.length} files`
+            : acceptedFiles[0].name,
+          firstFileUrl,
+          lastSessionId
+        )
 
+      } catch (err: any) {
         setError(
           err.response?.data?.detail ||
             'Failed to upload files.'
         )
-
       } finally {
-
         setIsUploading(false)
       }
     },
-
     [onUploadSuccess, collection]
   )
 

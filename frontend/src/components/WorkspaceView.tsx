@@ -15,6 +15,7 @@ interface Props {
   fileData: {
     name: string
     url: string
+    sessionId: string
   }
 
   activeCollection: string | null
@@ -322,8 +323,6 @@ export function WorkspaceView({
           />
         </div>
       </div>
-      {/* CHAT PANEL */}
-
       <div
         className="
           w-1/2
@@ -333,6 +332,7 @@ export function WorkspaceView({
       >
         <ChatView
           filename={fileData.name}
+          sessionId={fileData.sessionId}
           activeCollection={
             activeCollection
           }

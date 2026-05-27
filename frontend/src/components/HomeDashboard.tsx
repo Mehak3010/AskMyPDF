@@ -3,7 +3,8 @@ import { UploadView } from "./UploadView"
 interface Props {
   onUploadSuccess: (
     name: string,
-    url: string
+    url: string,
+    sessionId: string
   ) => void
 }
 

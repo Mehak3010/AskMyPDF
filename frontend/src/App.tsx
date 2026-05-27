@@ -17,6 +17,7 @@ function App() {
     useState<{
       name: string
       url: string
+      sessionId: string
     } | null>(null)
 
   // =========================
@@ -32,11 +33,13 @@ function App() {
 
   const handleUploadSuccess = (
     name: string,
-    url: string
+    url: string,
+    sessionId: string
   ) => {
     setFileData({
       name,
       url,
+      sessionId,
     })
   }
 
