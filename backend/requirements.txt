@@ -4,8 +4,9 @@ python-multipart
 pymupdf
 langchain
 langchain-text-splitters
-langchain-google-genai
 langchain-chroma
 chromadb
-google-generativeai
 python-dotenv
+langchain-huggingface
+sentence-transformers
+torch

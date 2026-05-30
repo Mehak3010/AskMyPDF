@@ -1,7 +1,15 @@
 import fitz
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter
+)
+
+from langchain_huggingface import (
+    HuggingFaceEmbeddings
+)
+
 from langchain_chroma import Chroma
+
 import os
 from dotenv import load_dotenv
 
@@ -9,9 +17,8 @@ load_dotenv()
 
 CHROMA_DIR = "./chroma_db"
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/gemini-embedding-001",
-    google_api_key=os.getenv("GOOGLE_API_KEY")
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 def extract_pages(pdf_path: str) -> list:

@@ -1,9 +1,11 @@
 interface Props {
   onSelect: (prompt: string) => void
+  onQuiz: () => void
 }
 
 export function StudyTools({
   onSelect,
+  onQuiz,
 }: Props) {
   const tools = [
     {
@@ -13,8 +15,7 @@ export function StudyTools({
 
     {
       title: "Quiz",
-      prompt:
-        "Generate 10 MCQs from this document",
+      prompt: "QUIZ_MODE",
     },
 
     {
@@ -43,7 +44,9 @@ export function StudyTools({
         <button
           key={tool.title}
           onClick={() =>
-            onSelect(tool.prompt)
+            tool.prompt === "QUIZ_MODE"
+              ? onQuiz()
+              : onSelect(tool.prompt)
           }
           className="
             px-4

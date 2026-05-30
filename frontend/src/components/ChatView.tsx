@@ -10,6 +10,8 @@ import { StudyTools } from "./StydyTools"
 import { AIActionButtons } from "./AiActionButtons"
 import { AIModeSelector } from "./AiModeSelector"
 import { ExportChatButton } from "./ExportChatButton"
+import { QuizView } from "./QuizView"
+import type { QuizQuestion } from "../types/quiz"
 
 interface Message {
   role: "user" | "assistant"
@@ -64,6 +66,12 @@ export function ChatView({
 
   const [selectedMode, setSelectedMode] =
     useState("Beginner")
+
+  const [showQuiz, setShowQuiz] =
+    useState(false)
+
+  const [quizQuestions, setQuizQuestions] =
+    useState<QuizQuestion[]>([])
 
   // =============================
   // INITIAL SESSION
@@ -287,6 +295,48 @@ export function ChatView({
     )
   }
 
+  async function generateQuiz() {
+    try {
+      const response =
+        await fetch(
+          "http://localhost:8001/generate-quiz",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              session_id: sessionId,
+            }),
+          }
+        )
+
+      const data =
+        await response.json()
+
+      if (
+        !data.questions ||
+        !data.questions.length
+      ) {
+        alert("No quiz generated")
+        return
+      }
+
+      setQuizQuestions(
+        data.questions
+      )
+
+      setShowQuiz(true)
+
+    } catch (err) {
+      console.error(
+        "Quiz error:",
+        err
+      )
+    }
+  }
+
   async function handleSend() {
     await sendMessage(input)
   }
@@ -328,6 +378,7 @@ export function ChatView({
               </p>
 
               <StudyTools
+                onQuiz={generateQuiz}
                 onSelect={(prompt) =>
                   prompt === "Summarize this document"
                     ? generateSummary()
@@ -516,6 +567,15 @@ export function ChatView({
               Clear Chat
             </button>
           </div>
+        )}
+
+        {showQuiz && (
+          <QuizView
+            questions={quizQuestions}
+            onClose={() =>
+              setShowQuiz(false)
+            }
+          />
         )}
 
         {/* INPUT */}

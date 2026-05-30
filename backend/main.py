@@ -3,17 +3,22 @@ from dotenv import load_dotenv
 load_dotenv()  # ← first
 
 # verify key loaded
-if not os.getenv("GOOGLE_API_KEY"):
-    raise RuntimeError("GOOGLE_API_KEY not found in .env")
+if not os.getenv("GROQ_API_KEY"):
+    raise RuntimeError("GROQ_API_KEY not found in .env")
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from groq import Groq
 import uuid, shutil, json
 
 from ingest import ingest_pdf
-from rag import query_rag, get_sources
+from rag import (
+    query_rag,
+    get_sources,
+    generate_quiz
+)
 app = FastAPI()
 
 app.add_middleware(
@@ -82,6 +87,44 @@ async def chat(req: ChatRequest):
 
     return StreamingResponse(stream(), media_type="text/plain")
 
+#--- Quiz ---
+
+class QuizRequest(BaseModel):
+    session_id: str
+
+
+@app.post("/generate-quiz")
+async def quiz(req: QuizRequest):
+
+    try:
+
+        quiz_text = generate_quiz(
+            req.session_id
+        )
+
+        cleaned = (
+            quiz_text
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
+
+        return json.loads(
+            cleaned
+        )
+
+    except Exception as e:
+
+        print(
+            "QUIZ ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )  
+        
 # --- Health check ---
 @app.get("/")
 def root():
@@ -90,8 +133,8 @@ def root():
 if __name__ == "__main__":
     import uvicorn
     load_dotenv()
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise RuntimeError("GOOGLE_API_KEY not found in .env")
+        raise RuntimeError("GROQ_API_KEY not found in .env")
     print(f"API KEY LOADED: {api_key[:10]}...")
     uvicorn.run(app, host="0.0.0.0", port=8001)

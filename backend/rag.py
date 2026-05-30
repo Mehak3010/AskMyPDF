@@ -1,4 +1,4 @@
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from groq import Groq
 from prompts import SYSTEM_PROMPT, build_prompt
@@ -10,9 +10,8 @@ load_dotenv()
 CHROMA_DIR = "./chroma_db"
 
 # Embeddings still use Google (free, no quota issues)
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/gemini-embedding-001",
-    google_api_key=os.getenv("GOOGLE_API_KEY")
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 # LLM switched to Groq
@@ -51,3 +50,67 @@ def get_sources(session_id: str, question: str) -> list:
         }
         for doc in docs
     ]
+    
+def generate_quiz(session_id: str):
+
+    docs = _get_docs(
+        session_id,
+        "Generate quiz questions"
+    )
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
+
+    prompt = f"""
+Generate exactly 10 multiple choice questions.
+
+Return ONLY valid JSON.
+
+Format:
+
+{{
+  "questions":[
+    {{
+      "question":"...",
+      "options":[
+        "...",
+        "...",
+        "...",
+        "..."
+      ],
+      "answer":"...",
+      "explanation":"..."
+    }}
+  ]
+}}
+
+Rules:
+- Exactly 10 questions
+- 4 options per question
+- One correct answer
+- Every question MUST include an explanation
+- Explanation should be 1-3 sentences
+- Explanation should explain WHY the answer is correct
+- Return valid JSON only
+- No markdown
+- No extra text outside JSON
+
+Content:
+
+{context}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content
