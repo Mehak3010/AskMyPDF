@@ -12,6 +12,8 @@ import { AIModeSelector } from "./AiModeSelector"
 import { ExportChatButton } from "./ExportChatButton"
 import { QuizView } from "./QuizView"
 import type { QuizQuestion } from "../types/quiz"
+import { FlashcardView } from "./FlashcardView"
+import type { Flashcard } from "../types/flashcard"
 
 interface Message {
   role: "user" | "assistant"
@@ -72,6 +74,12 @@ export function ChatView({
 
   const [quizQuestions, setQuizQuestions] =
     useState<QuizQuestion[]>([])
+
+  const [showFlashcards, setShowFlashcards] =
+  useState(false)
+
+  const [flashcards, setFlashcards] =
+    useState<Flashcard[]>([])
 
   // =============================
   // INITIAL SESSION
@@ -337,6 +345,48 @@ export function ChatView({
     }
   }
 
+  async function generateFlashcards() {
+    try {
+      const response =
+        await fetch(
+          "http://localhost:8001/generate-flashcards",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              session_id: sessionId,
+            }),
+          }
+        )
+
+      const data =
+        await response.json()
+
+      if (
+        !data.cards ||
+        !data.cards.length
+      ) {
+        alert(
+          "No flashcards generated"
+        )
+        return
+      }
+
+      setFlashcards(data.cards)
+
+      setShowFlashcards(true)
+
+    } catch (err) {
+      console.error(
+        "Flashcard error:",
+        err
+      )
+    }
+  }
+
   async function handleSend() {
     await sendMessage(input)
   }
@@ -379,6 +429,9 @@ export function ChatView({
 
               <StudyTools
                 onQuiz={generateQuiz}
+                onFlashcards={
+                  generateFlashcards
+                }
                 onSelect={(prompt) =>
                   prompt === "Summarize this document"
                     ? generateSummary()
@@ -574,6 +627,15 @@ export function ChatView({
             questions={quizQuestions}
             onClose={() =>
               setShowQuiz(false)
+            }
+          />
+        )}
+
+        {showFlashcards && (
+          <FlashcardView
+            cards={flashcards}
+            onClose={() =>
+              setShowFlashcards(false)
             }
           />
         )}

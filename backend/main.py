@@ -17,7 +17,8 @@ from ingest import ingest_pdf
 from rag import (
     query_rag,
     get_sources,
-    generate_quiz
+    generate_quiz,
+    generate_flashcards
 )
 app = FastAPI()
 
@@ -92,6 +93,10 @@ async def chat(req: ChatRequest):
 class QuizRequest(BaseModel):
     session_id: str
 
+#--- FlashCards ---
+
+class FlashcardRequest(BaseModel):
+    session_id: str
 
 @app.post("/generate-quiz")
 async def quiz(req: QuizRequest):
@@ -124,6 +129,52 @@ async def quiz(req: QuizRequest):
             status_code=500,
             detail=str(e)
         )  
+        
+class FlashcardRequest(BaseModel):
+    session_id: str
+
+
+@app.post("/generate-flashcards")
+async def flashcards(
+    req: FlashcardRequest
+):
+
+    try:
+
+        flashcard_text = (
+            generate_flashcards(
+                req.session_id
+            )
+        )
+
+        cleaned = (
+            flashcard_text
+            .replace(
+                "```json",
+                ""
+            )
+            .replace(
+                "```",
+                ""
+            )
+            .strip()
+        )
+
+        return json.loads(
+            cleaned
+        )
+
+    except Exception as e:
+
+        print(
+            "FLASHCARD ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
         
 # --- Health check ---
 @app.get("/")

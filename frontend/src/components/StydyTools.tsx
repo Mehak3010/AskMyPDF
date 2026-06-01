@@ -1,11 +1,13 @@
 interface Props {
   onSelect: (prompt: string) => void
   onQuiz: () => void
+  onFlashcards: () => void
 }
 
 export function StudyTools({
   onSelect,
   onQuiz,
+  onFlashcards,
 }: Props) {
   const tools = [
     {
@@ -16,6 +18,11 @@ export function StudyTools({
     {
       title: "Quiz",
       prompt: "QUIZ_MODE",
+    },
+
+    {
+      title: "Flashcards",
+      prompt: "FLASHCARD_MODE",
     },
 
     {
@@ -43,11 +50,19 @@ export function StudyTools({
       {tools.map((tool) => (
         <button
           key={tool.title}
-          onClick={() =>
-            tool.prompt === "QUIZ_MODE"
-              ? onQuiz()
-              : onSelect(tool.prompt)
-          }
+          onClick={() => {
+            if (tool.prompt === "QUIZ_MODE") {
+              onQuiz()
+              return
+            }
+
+            if (tool.prompt === "FLASHCARD_MODE") {
+              onFlashcards()
+              return
+            }
+
+            onSelect(tool.prompt)
+          }}
           className="
             px-4
             py-2

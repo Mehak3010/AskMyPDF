@@ -114,3 +114,59 @@ Content:
     )
 
     return response.choices[0].message.content
+
+def generate_flashcards(
+    session_id: str
+):
+
+    docs = _get_docs(
+        session_id,
+        "Generate flashcards"
+    )
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
+
+    prompt = f"""
+Generate exactly 15 flashcards.
+
+Return ONLY valid JSON.
+
+Format:
+
+{{
+  "cards":[
+    {{
+      "front":"Question",
+      "back":"Answer"
+    }}
+  ]
+}}
+
+Rules:
+- Exactly 15 flashcards
+- front = question
+- back = answer
+- concise but informative
+- no markdown
+- valid JSON only
+
+Content:
+
+{context}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content
