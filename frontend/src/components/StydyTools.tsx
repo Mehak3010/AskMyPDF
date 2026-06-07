@@ -3,6 +3,7 @@ interface Props {
   onQuiz: () => void
   onFlashcards: () => void
   onExamPrep: () => void
+  onViva: () => void
 }
 
 export function StudyTools({
@@ -10,6 +11,7 @@ export function StudyTools({
   onQuiz,
   onFlashcards,
   onExamPrep,
+  onViva,
 }: Props) {
   const tools = [
     {
@@ -34,8 +36,7 @@ export function StudyTools({
 
     {
       title: "Viva",
-      prompt:
-        "Generate viva questions from this document",
+      prompt: "VIVA_MODE",
     },
 
     {
@@ -78,6 +79,14 @@ export function StudyTools({
               "EXAM_PREP_MODE"
             ) {
               onExamPrep()
+              return
+            }
+
+            if (
+              tool.prompt ===
+              "VIVA_MODE"
+            ) {
+              onViva()
               return
             }
 

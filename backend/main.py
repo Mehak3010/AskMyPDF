@@ -19,7 +19,8 @@ from rag import (
     get_sources,
     generate_quiz,
     generate_flashcards,
-    generate_exam_prep
+    generate_exam_prep,
+    generate_viva_questions
 )
 app = FastAPI()
 
@@ -102,6 +103,9 @@ class FlashcardRequest(BaseModel):
 #--- ExamPrep ---
 
 class ExamPrepRequest(BaseModel):
+    session_id: str
+    
+class VivaRequest(BaseModel):
     session_id: str
 
 @app.post("/generate-quiz")
@@ -215,6 +219,50 @@ async def exam_prep(
 
         print(
             "EXAM PREP ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+        
+#--- Viva ---
+
+@app.post("/generate-viva")
+async def viva(
+    req: VivaRequest
+):
+
+    try:
+
+        viva_text = (
+            generate_viva_questions(
+                req.session_id
+            )
+        )
+
+        cleaned = (
+            viva_text
+            .replace(
+                "```json",
+                ""
+            )
+            .replace(
+                "```",
+                ""
+            )
+            .strip()
+        )
+
+        return json.loads(
+            cleaned
+        )
+
+    except Exception as e:
+
+        print(
+            "VIVA ERROR:",
             e
         )
 

@@ -247,3 +247,60 @@ Content:
     )
 
     return response.choices[0].message.content
+
+def generate_viva_questions(
+    session_id: str
+):
+
+    docs = _get_docs(
+        session_id,
+        "Generate viva questions"
+    )
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
+
+    prompt = f"""
+Generate exactly 10 viva questions.
+
+Return ONLY valid JSON.
+
+Format:
+
+{{
+  "questions":[
+    {{
+      "question":"...",
+      "answer":"..."
+    }}
+  ]
+}}
+
+Rules:
+
+- Exactly 10 questions
+- Each question must have an answer
+- Answers should be concise but interview-ready
+- Return valid JSON only
+- No markdown
+- No extra text
+
+Content:
+
+{context}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content

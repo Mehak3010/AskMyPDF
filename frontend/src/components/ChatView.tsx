@@ -16,6 +16,8 @@ import { FlashcardView } from "./FlashcardView"
 import type { Flashcard } from "../types/flashcard"
 import { ExamPrepView } from "./ExamPrepView"
 import type { ExamPrepData } from "../types/examPrep"
+import { VivaView } from "./VivaView"
+import type { VivaQuestion } from "../types/viva"
 
 interface Message {
   role: "user" | "assistant"
@@ -89,6 +91,11 @@ export function ChatView({
   const [examPrepData, setExamPrepData] =
     useState<ExamPrepData | null>(null)
 
+  const [showViva, setShowViva] =
+  useState(false)
+
+  const [vivaQuestions, setVivaQuestions] =
+    useState<VivaQuestion[]>([])
   // =============================
   // INITIAL SESSION
   // =============================
@@ -438,6 +445,52 @@ export function ChatView({
     }
   }
 
+  async function generateViva() {
+    try {
+
+      const response =
+        await fetch(
+          "http://localhost:8001/generate-viva",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              session_id: sessionId,
+            }),
+          }
+        )
+
+      const data =
+        await response.json()
+
+      if (
+        !data.questions ||
+        !data.questions.length
+      ) {
+        alert(
+          "No viva questions generated"
+        )
+        return
+      }
+
+      setVivaQuestions(
+        data.questions
+      )
+
+      setShowViva(true)
+
+    } catch (err) {
+
+      console.error(
+        "Viva Error:",
+        err
+      )
+    }
+  }
+
   async function handleSend() {
     await sendMessage(input)
   }
@@ -480,12 +533,9 @@ export function ChatView({
 
               <StudyTools
                 onQuiz={generateQuiz}
-                onFlashcards={
-                  generateFlashcards
-                }
-                onExamPrep={
-                  generateExamPrep
-                }
+                onFlashcards={generateFlashcards}
+                onExamPrep={generateExamPrep}
+                onViva={generateViva}
                 onSelect={(prompt) =>
                   prompt === "Summarize this document"
                     ? generateSummary()
@@ -702,6 +752,15 @@ export function ChatView({
                 setShowExamPrep(false)
               }
             />
+        )}
+
+        {showViva && (
+          <VivaView
+            questions={vivaQuestions}
+            onClose={() =>
+              setShowViva(false)
+            }
+          />
         )}
 
         {/* INPUT */}
