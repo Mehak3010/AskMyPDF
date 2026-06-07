@@ -18,7 +18,8 @@ from rag import (
     query_rag,
     get_sources,
     generate_quiz,
-    generate_flashcards
+    generate_flashcards,
+    generate_exam_prep
 )
 app = FastAPI()
 
@@ -97,6 +98,11 @@ class QuizRequest(BaseModel):
 
 class FlashcardRequest(BaseModel):
     session_id: str
+    
+#--- ExamPrep ---
+
+class ExamPrepRequest(BaseModel):
+    session_id: str
 
 @app.post("/generate-quiz")
 async def quiz(req: QuizRequest):
@@ -130,9 +136,6 @@ async def quiz(req: QuizRequest):
             detail=str(e)
         )  
         
-class FlashcardRequest(BaseModel):
-    session_id: str
-
 
 @app.post("/generate-flashcards")
 async def flashcards(
@@ -168,6 +171,50 @@ async def flashcards(
 
         print(
             "FLASHCARD ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+        
+#--- Exam Prep ---
+        
+@app.post("/generate-exam-prep")
+async def exam_prep(
+    req: ExamPrepRequest
+):
+
+    try:
+
+        prep_text = (
+            generate_exam_prep(
+                req.session_id
+            )
+        )
+
+        cleaned = (
+            prep_text
+            .replace(
+                "```json",
+                ""
+            )
+            .replace(
+                "```",
+                ""
+            )
+            .strip()
+        )
+
+        return json.loads(
+            cleaned
+        )
+
+    except Exception as e:
+
+        print(
+            "EXAM PREP ERROR:",
             e
         )
 

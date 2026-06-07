@@ -168,5 +168,82 @@ Content:
         ],
         temperature=0.3
     )
+    return response.choices[0].message.content
+
+def generate_exam_prep(
+    session_id: str
+):
+
+    docs = _get_docs(
+        session_id,
+        "Generate exam preparation notes"
+    )
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
+
+    prompt = f"""
+Create exam preparation material from the PDF.
+
+Return ONLY valid JSON.
+
+Format:
+
+{{
+  "important_topics": [
+    "..."
+  ],
+
+  "long_questions": [
+    "..."
+  ],
+
+  "short_questions": [
+    "..."
+  ],
+
+  "definitions": [
+    {{
+      "term": "...",
+      "meaning": "..."
+    }}
+  ],
+
+  "viva_questions": [
+    {{
+      "question": "...",
+      "answer": "..."
+    }}
+  ]
+}}
+
+Rules:
+
+- 10 important topics
+- 5 long questions
+- 10 short questions
+- 10 definitions
+- 10 viva questions with answers
+- Return JSON only
+- No markdown
+- No extra text
+
+Content:
+
+{context}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3
+    )
 
     return response.choices[0].message.content

@@ -2,12 +2,14 @@ interface Props {
   onSelect: (prompt: string) => void
   onQuiz: () => void
   onFlashcards: () => void
+  onExamPrep: () => void
 }
 
 export function StudyTools({
   onSelect,
   onQuiz,
   onFlashcards,
+  onExamPrep,
 }: Props) {
   const tools = [
     {
@@ -23,6 +25,11 @@ export function StudyTools({
     {
       title: "Flashcards",
       prompt: "FLASHCARD_MODE",
+    },
+
+    {
+      title: "Exam Prep",
+      prompt: "EXAM_PREP_MODE",
     },
 
     {
@@ -42,6 +49,11 @@ export function StudyTools({
       prompt:
         "Explain this PDF in simple language",
     },
+
+    {
+      title: "Exam Prep",
+      prompt: "EXAM_PREP_MODE",
+    }
   ]
 
   return (
@@ -58,6 +70,14 @@ export function StudyTools({
 
             if (tool.prompt === "FLASHCARD_MODE") {
               onFlashcards()
+              return
+            }
+
+            if (
+              tool.prompt ===
+              "EXAM_PREP_MODE"
+            ) {
+              onExamPrep()
               return
             }
 

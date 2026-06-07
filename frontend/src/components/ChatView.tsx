@@ -14,6 +14,8 @@ import { QuizView } from "./QuizView"
 import type { QuizQuestion } from "../types/quiz"
 import { FlashcardView } from "./FlashcardView"
 import type { Flashcard } from "../types/flashcard"
+import { ExamPrepView } from "./ExamPrepView"
+import type { ExamPrepData } from "../types/examPrep"
 
 interface Message {
   role: "user" | "assistant"
@@ -80,6 +82,12 @@ export function ChatView({
 
   const [flashcards, setFlashcards] =
     useState<Flashcard[]>([])
+
+  const [showExamPrep, setShowExamPrep] =
+  useState(false)
+
+  const [examPrepData, setExamPrepData] =
+    useState<ExamPrepData | null>(null)
 
   // =============================
   // INITIAL SESSION
@@ -387,6 +395,49 @@ export function ChatView({
     }
   }
 
+  async function generateExamPrep() {
+    try {
+
+      const response =
+        await fetch(
+          "http://localhost:8001/generate-exam-prep",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              session_id: sessionId,
+            }),
+          }
+        )
+
+      const data =
+        await response.json()
+
+      if (
+        !data.important_topics
+      ) {
+        alert(
+          "Failed to generate exam prep"
+        )
+        return
+      }
+
+      setExamPrepData(data)
+
+      setShowExamPrep(true)
+
+    } catch (err) {
+
+      console.error(
+        "Exam Prep Error:",
+        err
+      )
+    }
+  }
+
   async function handleSend() {
     await sendMessage(input)
   }
@@ -431,6 +482,9 @@ export function ChatView({
                 onQuiz={generateQuiz}
                 onFlashcards={
                   generateFlashcards
+                }
+                onExamPrep={
+                  generateExamPrep
                 }
                 onSelect={(prompt) =>
                   prompt === "Summarize this document"
@@ -638,6 +692,16 @@ export function ChatView({
               setShowFlashcards(false)
             }
           />
+        )}
+
+        {showExamPrep &&
+          examPrepData && (
+            <ExamPrepView
+              data={examPrepData}
+              onClose={() =>
+                setShowExamPrep(false)
+              }
+            />
         )}
 
         {/* INPUT */}
