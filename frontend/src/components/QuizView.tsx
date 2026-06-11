@@ -96,21 +96,21 @@ export function QuizView({
           overflow-y-auto
 
           p-6
+
+          flex
+          items-center
+          justify-center
         "
       >
         <div
           ref={resultRef}
           className="
-            mx-auto
-
             w-full
             max-w-4xl
 
             max-h-[90vh]
 
             overflow-y-auto
-
-            my-10
 
             bg-[#0f172a]
 
@@ -168,44 +168,6 @@ export function QuizView({
               "
             >
               {percentage}%
-            </div>
-
-            <div
-              className="
-                mt-8
-
-                bg-zinc-900
-                border
-                border-zinc-800
-
-                rounded-2xl
-
-                p-4
-
-                text-left
-              "
-            >
-              <h3
-                className="
-                  text-white
-                  font-semibold
-                  mb-2
-                "
-              >
-                Performance Analysis
-              </h3>
-
-              <p
-                className="
-                  text-zinc-400
-                  text-sm
-                "
-              >
-                You answered {score} out of{" "}
-                {questions.length}
-                {" "}
-                questions correctly.
-              </p>
             </div>
           </div>
 
@@ -403,6 +365,10 @@ export function QuizView({
         overflow-y-auto
 
         p-6
+
+        flex
+        items-center
+        justify-center
       "
     >
       <div
