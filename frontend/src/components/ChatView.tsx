@@ -716,7 +716,10 @@ export function ChatView({
         {/* ACTION BAR */}
         {messages.length > 0 && (
           <div className="flex justify-between px-4 py-3 border-t border-zinc-800">
-            <ExportChatButton messages={messages} />
+            <ExportChatButton
+              sessionId={sessionId}
+              messages={messages}
+            />
             <button
               onClick={() => updateMessages([])}
               className="text-xs text-zinc-500 hover:text-red-400 transition"

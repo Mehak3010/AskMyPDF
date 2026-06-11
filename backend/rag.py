@@ -304,3 +304,162 @@ Content:
     )
 
     return response.choices[0].message.content
+
+def generate_study_kit(
+    session_id: str
+):
+
+    docs = _get_docs(
+        session_id,
+        "Generate complete study kit"
+    )
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
+
+    prompt = f"""
+Create a COMPLETE EXAM STUDY KIT from the PDF.
+
+Return ONLY valid JSON.
+
+Format:
+
+{{
+  "summary": "...",
+
+  "important_topics": [
+    "..."
+  ],
+
+  "definitions": [
+    {{
+      "term": "...",
+      "meaning": "..."
+    }}
+  ],
+
+  "long_questions": [
+    {{
+        "question": "...",
+        "answer": [
+            "...",
+            "...",
+            "...",
+            "...",
+            "..."
+        ]
+    }}
+  ],
+
+  "short_questions": [
+    {{
+        "question": "...",
+        "answer": "..."
+    }}
+  ],
+
+  "important_questions": [
+    {{
+        "question": "...",
+        "answer": [
+            "...",
+            "...",
+            "...",
+            "...",
+            "..."
+        ]
+    }}
+  ],
+
+  "viva_questions": [
+    {{
+      "question": "...",
+      "answer": "..."
+    }}
+  ],
+
+  "mcq_revision": [
+    {{
+      "question": "...",
+      "answer": "...",
+      "explanation": "..."
+    }}
+  ],
+
+  "revision_sheet": [
+    "..."
+  ]
+}}
+
+Rules:
+
+SUMMARY
+- Create a detailed exam-oriented summary.
+- Use simple language.
+- Focus on concepts likely to appear in exams.
+
+IMPORTANT TOPICS
+- Generate exactly 10 most important topics.
+
+DEFINITIONS
+- Generate exactly 10 key definitions.
+- Keep definitions concise and exam-friendly.
+
+LONG QUESTIONS
+- Generate exactly 5 descriptive exam questions.
+- Answers must contain 5-8 concise exam-oriented points.
+- Return answers as an array of strings.
+
+SHORT QUESTIONS
+- Generate exactly 10 short-answer questions.
+- Answers should be 2–4 lines.
+
+IMPORTANT QUESTIONS
+- Generate exactly 10 highly probable exam questions.
+- Answers must contain 5-8 concise exam-oriented points.
+- Return answers as an array of strings.
+
+VIVA QUESTIONS
+- Generate exactly 10 viva questions.
+- Include concise model answers.
+
+MCQ REVISION
+- Generate exactly 10 MCQs.
+- Include only:
+  question
+  answer
+  explanation
+- Keep explanations short.
+
+REVISION SHEET
+- Generate exactly 15 one-line revision points.
+- These should be suitable for last-minute revision.
+
+GENERAL RULES
+- Avoid duplicates.
+- Use information only from the PDF.
+- Make content exam-oriented.
+- Return valid JSON only.
+- No markdown.
+- No code fences.
+- No additional text.
+
+Content:
+
+{context}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content

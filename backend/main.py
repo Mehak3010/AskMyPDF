@@ -20,8 +20,10 @@ from rag import (
     generate_quiz,
     generate_flashcards,
     generate_exam_prep,
-    generate_viva_questions
+    generate_viva_questions,
+    generate_study_kit
 )
+
 app = FastAPI()
 
 app.add_middleware(
@@ -106,6 +108,11 @@ class ExamPrepRequest(BaseModel):
     session_id: str
     
 class VivaRequest(BaseModel):
+    session_id: str
+    
+#--- StudyKit ---
+
+class StudyKitRequest(BaseModel):
     session_id: str
 
 @app.post("/generate-quiz")
@@ -263,6 +270,50 @@ async def viva(
 
         print(
             "VIVA ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+        
+# --- Study Kit ---
+
+@app.post("/generate-study-kit")
+async def study_kit(
+    req: StudyKitRequest
+):
+
+    try:
+
+        study_kit_text = (
+            generate_study_kit(
+                req.session_id
+            )
+        )
+
+        cleaned = (
+            study_kit_text
+            .replace(
+                "```json",
+                ""
+            )
+            .replace(
+                "```",
+                ""
+            )
+            .strip()
+        )
+
+        return json.loads(
+            cleaned
+        )
+
+    except Exception as e:
+
+        print(
+            "STUDY KIT ERROR:",
             e
         )
 
