@@ -153,17 +153,14 @@ console.log(
 
                       spacing: {
 
-                        after:
-                          line.trim() === ""
-                            ? 120
-                            : 60,
+                        after:20,
                       },
 
                       children: [
 
                         new TextRun({
 
-                          text: line,
+                          text: line.trim(),
 
                           size: 24,
 

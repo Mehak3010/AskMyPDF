@@ -543,31 +543,6 @@ export function ChatView({
                 }
               />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-6">
-                {[
-                  "Summarize this document",
-                  "Generate viva questions",
-                  "Explain this PDF simply",
-                  "Create exam revision notes",
-                ].map((prompt) => (
-                  <button
-                    key={prompt}
-                    onClick={() =>
-                      prompt === "Summarize this document"
-                        ? generateSummary()
-                        : sendMessage(prompt)
-                    }
-                    className="bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800/50 rounded-2xl p-4 text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group"
-                  >
-                    <div className="text-white font-medium group-hover:text-blue-400 transition-colors">
-                      {prompt}
-                    </div>
-                    <div className="text-zinc-500 text-sm mt-1">
-                      Tap to use this prompt
-                    </div>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 

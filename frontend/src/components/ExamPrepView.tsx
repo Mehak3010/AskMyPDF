@@ -123,13 +123,17 @@ export function ExamPrepView({
           title="Long Questions"
         />
 
-        <div className="space-y-4 mb-10">
+        <div className="space-y-6 mb-10">
           {data.long_questions.map(
             (question, index) => (
-              <Card
-                key={index}
-                content={`${index + 1}. ${question}`}
-              />
+              <div key={index} className="space-y-2">
+                <Card
+                  content={`${index + 1}. ${question}`}
+                />
+                {index < data.long_questions.length - 1 && (
+                  <div className="border-b border-zinc-700/50" />
+                )}
+              </div>
             )
           )}
         </div>
@@ -140,13 +144,17 @@ export function ExamPrepView({
           title="Short Questions"
         />
 
-        <div className="space-y-4 mb-10">
+        <div className="space-y-6 mb-10">
           {data.short_questions.map(
             (question, index) => (
-              <Card
-                key={index}
-                content={`${index + 1}. ${question}`}
-              />
+              <div key={index} className="space-y-2">
+                <Card
+                  content={`${index + 1}. ${question}`}
+                />
+                {index < data.short_questions.length - 1 && (
+                  <div className="border-b border-zinc-700/50" />
+                )}
+              </div>
             )
           )}
         </div>
@@ -157,36 +165,41 @@ export function ExamPrepView({
           title="Definitions"
         />
 
-        <div className="space-y-4 mb-10">
+        <div className="space-y-6 mb-10">
           {data.definitions.map(
             (item, index) => (
-              <div
-                key={index}
-                className="
-                  bg-zinc-900
-                  border
-                  border-zinc-800
-                  rounded-xl
-                  p-4
-                "
-              >
+              <div key={index} className="space-y-2">
                 <div
                   className="
-                    text-blue-300
-                    font-semibold
-                    mb-2
+                    bg-zinc-900
+                    border
+                    border-zinc-800
+                    rounded-xl
+                    p-4
                   "
                 >
-                  {item.term}
-                </div>
+                  <div
+                    className="
+                      text-blue-300
+                      font-semibold
+                      mb-3
+                    "
+                  >
+                    {item.term}
+                  </div>
 
-                <div
-                  className="
-                    text-zinc-300
-                  "
-                >
-                  {item.meaning}
+                  <div
+                    className="
+                      text-zinc-300
+                      whitespace-pre-line
+                    "
+                  >
+                    {item.meaning}
+                  </div>
                 </div>
+                {index < data.definitions.length - 1 && (
+                  <div className="border-b border-zinc-700/50" />
+                )}
               </div>
             )
           )}
@@ -198,37 +211,42 @@ export function ExamPrepView({
           title="Viva Questions"
         />
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {data.viva_questions.map(
             (item, index) => (
-              <div
-                key={index}
-                className="
-                  bg-zinc-900
-                  border
-                  border-zinc-800
-                  rounded-xl
-                  p-4
-                "
-              >
+              <div key={index} className="space-y-2">
                 <div
                   className="
-                    text-white
-                    font-medium
-                    mb-3
+                    bg-zinc-900
+                    border
+                    border-zinc-800
+                    rounded-xl
+                    p-4
                   "
                 >
-                  Q{index + 1}.{" "}
-                  {item.question}
-                </div>
+                  <div
+                    className="
+                      text-white
+                      font-medium
+                      mb-3
+                    "
+                  >
+                    Q{index + 1}.{" "}
+                    {item.question}
+                  </div>
 
-                <div
-                  className="
-                    text-zinc-300
-                  "
-                >
-                  {item.answer}
+                  <div
+                    className="
+                      text-zinc-300
+                      whitespace-pre-line
+                    "
+                  >
+                    {item.answer}
+                  </div>
                 </div>
+                {index < data.viva_questions.length - 1 && (
+                  <div className="border-b border-zinc-700/50" />
+                )}
               </div>
             )
           )}
@@ -276,6 +294,7 @@ function Card({
         p-4
 
         text-zinc-200
+        whitespace-pre-line
       "
     >
       {content}

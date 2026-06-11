@@ -228,6 +228,7 @@ Rules:
 - 10 short questions
 - 10 definitions
 - 10 viva questions with answers
+- For answers/meanings: Use proper newlines to separate points. Use bullet points (-) for lists.
 - Return JSON only
 - No markdown
 - No extra text

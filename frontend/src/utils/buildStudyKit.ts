@@ -70,7 +70,7 @@ export function buildStudyKit(
           ) =>
       `${index + 1}. ${d.term}
 
-      ${d.meaning}`
+      Meaning: ${d.meaning}`
         )
     })
   }
@@ -93,18 +93,18 @@ export function buildStudyKit(
               q: any,
               index: number
             ) =>
-        `${index + 1}. ${q.question}
 
-          Answer:
-
-          ${Array.isArray(q.answer)
-            ? q.answer
-                .map(
-                  (point: string) =>
-                    `- ${point}`
-                )
-                .join("\n")
-            : q.answer}`
+              [
+                `${index + 1}. ${q.question}`,
+                "",
+                "Answer:",
+                ...(Array.isArray(q.answer)
+                  ? q.answer.map(
+                      (point: string) =>
+                        `• ${point}`
+                    )
+                  : [q.answer]),
+              ].join("\n")
           ),
     })
 }
@@ -129,9 +129,7 @@ export function buildStudyKit(
           ) =>
       `${index + 1}. ${q.question}
 
-      Answer:
-
-      ${q.answer}`
+      Answer: ${q.answer}`
         ),
     })
   }
@@ -154,18 +152,18 @@ export function buildStudyKit(
             q: any,
             index: number
           ) =>
-      `${index + 1}. ${q.question}
 
-          Answer:
-
-          ${Array.isArray(q.answer)
-            ? q.answer
-                .map(
-                  (point: string) =>
-                    `- ${point}`
-                )
-                .join("\n")
-            : q.answer}`
+            [
+              `${index + 1}. ${q.question}`,
+              "",
+              "Answer:",
+              ...(Array.isArray(q.answer)
+                ? q.answer.map(
+                    (point: string) =>
+                      `• ${point}`
+                  )
+                : [q.answer]),
+            ].join("\n")
         ),
     })
   }
@@ -190,9 +188,7 @@ export function buildStudyKit(
           ) =>
       `${index + 1}. ${q.question}
 
-      Answer:
-
-      ${q.answer}`
+      Answer: ${q.answer}`
         ),
     })
   }
@@ -217,13 +213,9 @@ export function buildStudyKit(
           ) =>
       `${index + 1}. ${q.question}
 
-      Correct Answer:
+      Correct Answer: ${q.answer}
 
-      ${q.answer}
-
-      Explanation:
-
-      ${q.explanation}`
+      Explanation: ${q.explanation}`
         ),
     })
   }
