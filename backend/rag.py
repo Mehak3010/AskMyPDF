@@ -74,6 +74,7 @@ Format:
   "questions":[
     {{
       "question":"...",
+      "topic":"...",
       "options":[
         "...",
         "...",
@@ -93,6 +94,7 @@ Rules:
 - Every question MUST include an explanation
 - Explanation should be 1-3 sentences
 - Explanation should explain WHY the answer is correct
+- Every question MUST include a "topic" field that is a concise, descriptive topic name (max 30 characters) - THIS FIELD IS MANDATORY AND CANNOT BE EMPTY
 - Return valid JSON only
 - No markdown
 - No extra text outside JSON

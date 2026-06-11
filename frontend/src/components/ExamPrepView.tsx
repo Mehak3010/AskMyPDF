@@ -38,12 +38,14 @@ export function ExamPrepView({
         overflow-y-auto
 
         p-6
+
+        flex
+        items-center
+        justify-center
       "
     >
       <div
         className="
-          mx-auto
-
           w-full
           max-w-5xl
 
@@ -55,8 +57,6 @@ export function ExamPrepView({
           rounded-3xl
 
           p-8
-
-          my-10
         "
       >
         {/* HEADER */}

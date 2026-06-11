@@ -1,11 +1,19 @@
 interface Props {
   content: string
   onAction: (prompt: string) => void
+  onQuiz: () => void
+  onFlashcards: () => void
+  onExamPrep: () => void
+  onViva: () => void
 }
 
 export function AIActionButtons({
   content,
   onAction,
+  onQuiz,
+  onFlashcards,
+  onExamPrep,
+  onViva,
 }: Props) {
   const actions = [
     {
@@ -16,20 +24,17 @@ export function AIActionButtons({
 
     {
       label: "Quiz",
-      prompt:
-        "Generate quiz questions from the previous response",
+      action: onQuiz,
     },
 
     {
       label: "Flashcards",
-      prompt:
-        "Create flashcards from the previous response",
+      action: onFlashcards,
     },
 
     {
       label: "Viva",
-      prompt:
-        "Generate viva questions from the previous response",
+      action: onViva,
     },
   ]
 
@@ -39,9 +44,13 @@ export function AIActionButtons({
       {actions.map((action) => (
         <button
           key={action.label}
-          onClick={() =>
-            onAction(action.prompt)
-          }
+          onClick={() => {
+            if ('action' in action) {
+              action.action()
+            } else {
+              onAction(action.prompt)
+            }
+          }}
           className="
             px-3
             py-1.5

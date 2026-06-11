@@ -18,7 +18,12 @@ function App() {
       name: string
       url: string
       sessionId: string
-    } | null>(null)
+    }[]>([])
+
+  const [
+    activePdfIndex,
+    setActivePdfIndex,
+  ] = useState(0)
 
   // =========================
   // ACTIVE COLLECTION
@@ -36,11 +41,44 @@ function App() {
     url: string,
     sessionId: string
   ) => {
-    setFileData({
-      name,
-      url,
-      sessionId,
+
+    setFileData((prev) => {
+
+      const updated = [
+
+        ...prev,
+
+        {
+          name,
+          url,
+          sessionId,
+        },
+      ]
+
+      return updated
     })
+
+    setActivePdfIndex(
+      fileData.length
+    )
+  }
+
+  // =========================
+  // REMOVE PDF
+  // =========================
+
+  const handleRemovePdf = (index: number) => {
+    setFileData((prev) => {
+      const updated = [...prev]
+      updated.splice(index, 1)
+      return updated
+    })
+
+    if (activePdfIndex >= index && activePdfIndex > 0) {
+      setActivePdfIndex(activePdfIndex - 1)
+    } else if (activePdfIndex === index && activePdfIndex === 0) {
+      setActivePdfIndex(0)
+    }
   }
 
   // =========================
@@ -48,9 +86,13 @@ function App() {
   // =========================
 
   const handleBackToHome = () => {
-    setFileData(null)
-  }
 
+    setFileData([])
+
+    setActivePdfIndex(0)
+
+    setActiveCollection(null)
+  }
   return (
     <div
       className="
@@ -115,9 +157,9 @@ function App() {
 
       <main className="flex-1 overflow-hidden">
 
-        {/* HOME SCREEN */}
+       {/* HOME SCREEN */}
 
-        {!fileData ? (
+        {fileData.length === 0 ? (
 
           <HomeDashboard
             onUploadSuccess={
@@ -127,15 +169,32 @@ function App() {
 
         ) : (
 
-          /* WORKSPACE */
-
           <WorkspaceView
+
             fileData={fileData}
+
+            activePdfIndex={
+              activePdfIndex
+            }
+
+            setActivePdfIndex={
+              setActivePdfIndex
+            }
+
             activeCollection={
               activeCollection
             }
+
             onBack={
               handleBackToHome
+            }
+            
+            onUploadSuccess={
+              handleUploadSuccess
+            }
+            
+            onRemovePdf={
+              handleRemovePdf
             }
           />
         )}

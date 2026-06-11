@@ -61,12 +61,7 @@ export const UploadView: React.FC<
       setError(null)
 
       try {
-        const firstFileUrl =
-          URL.createObjectURL(
-            acceptedFiles[0]
-          )
-
-        let lastSessionId = ""
+        const sessionIds: string[] = []
 
         // PROCESS FILES
         for (const file of acceptedFiles) {
@@ -84,19 +79,22 @@ export const UploadView: React.FC<
             }
           )
           
-          lastSessionId = response.data.session_id
+          sessionIds.push(response.data.session_id)
         }
 
         setIsSuccess(true)
 
-        // NOW call with session_id
-        onUploadSuccess(
-          acceptedFiles.length > 1
-            ? `${acceptedFiles.length} files`
-            : acceptedFiles[0].name,
-          firstFileUrl,
-          lastSessionId
-        )
+        // Call onUploadSuccess for EACH file
+        for (let i = 0; i < acceptedFiles.length; i++) {
+          const file = acceptedFiles[i]
+          const fileUrl = URL.createObjectURL(file)
+          
+          onUploadSuccess(
+            file.name,
+            fileUrl,
+            sessionIds[i]
+          )
+        }
 
       } catch (err: any) {
         setError(

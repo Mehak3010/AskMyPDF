@@ -657,18 +657,6 @@ export function ChatView({
                               <span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse rounded-sm align-middle" />
                             )}
                         </div>
-
-                        {/* AI ACTIONS */}
-                        {index === messages.length - 1 &&
-                          !loading &&
-                          message.content && (
-                            <div className="mt-4 pt-4 border-t border-zinc-800/50">
-                              <AIActionButtons
-                                content={message.content}
-                                onAction={(prompt: string) => sendMessage(prompt)}
-                              />
-                            </div>
-                          )}
                       </div>
 
                       {/* SOURCES */}
@@ -691,6 +679,22 @@ export function ChatView({
                           ))}
                         </div>
                       )}
+
+                      {/* AI ACTIONS */}
+                      {index === messages.length - 1 &&
+                        !loading &&
+                        message.content && (
+                          <div className="pt-4 border-t border-zinc-800/50">
+                            <AIActionButtons
+                              content={message.content}
+                              onAction={(prompt: string) => sendMessage(prompt)}
+                              onQuiz={generateQuiz}
+                              onFlashcards={generateFlashcards}
+                              onExamPrep={generateExamPrep}
+                              onViva={generateViva}
+                            />
+                          </div>
+                        )}
                     </div>
                   )}
                 </div>

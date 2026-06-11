@@ -49,11 +49,6 @@ export function StudyTools({
       title: "Explain Simply",
       prompt:
         "Explain this PDF in simple language",
-    },
-
-    {
-      title: "Exam Prep",
-      prompt: "EXAM_PREP_MODE",
     }
   ]
 

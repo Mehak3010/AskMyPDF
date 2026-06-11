@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
+import axios from "axios"
 
 import { PDFViewer } from "./PDFViewer"
 
@@ -6,27 +7,46 @@ import { ChatView } from "./ChatView"
 
 import { ConversationSidebar } from "./ConversationSidebar"
 
-import {
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react"
+import { FileText, Plus, Loader2, X } from "lucide-react"
 
 interface Props {
+
   fileData: {
+
     name: string
     url: string
     sessionId: string
-  }
 
-  activeCollection: string | null
+  }[]
+
+  activePdfIndex: number
+
+  setActivePdfIndex: (
+    index: number
+  ) => void
+
+  activeCollection:
+    string | null
 
   onBack: () => void
+  
+  onUploadSuccess: (
+    name: string,
+    url: string,
+    sessionId: string
+  ) => void
+  
+  onRemovePdf: (index: number) => void
 }
 
 export function WorkspaceView({
   fileData,
+  activePdfIndex,
+  setActivePdfIndex,
   activeCollection,
   onBack,
+  onUploadSuccess,
+  onRemovePdf,
 }: Props) {
   // =========================
   // PAGE NAVIGATION
@@ -34,105 +54,58 @@ export function WorkspaceView({
 
   const [selectedPage, setSelectedPage] =
     useState(0)
-
+  
   // =========================
-  // SIDEBAR
+  // UPLOAD
   // =========================
+  
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [showSidebar, setShowSidebar] =
-    useState(false)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File select triggered')
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    console.log('Files selected:', files)
+    setIsUploading(true)
+    
+    try {
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('collection', activeCollection || 'General')
+
+        console.log('Uploading file:', file.name)
+        const response = await axios.post(
+          'http://localhost:8001/upload',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+
+        console.log('Upload response:', response.data)
+        const fileUrl = URL.createObjectURL(file)
+        onUploadSuccess(file.name, fileUrl, response.data.session_id)
+      }
+    } catch (err) {
+      console.error('Upload error:', err)
+      alert('Failed to upload file. Check console for details.')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
 
   return (
     <div className="flex h-full relative">
 
-      {/* OVERLAY */}
-
-      {showSidebar && (
-
-        <div
-          onClick={() =>
-            setShowSidebar(false)
-          }
-          className="
-            absolute
-            inset-0
-            bg-black/50
-            backdrop-blur-sm
-            z-40
-          "
-        />
-
-      )}
-
-      {/* FLOATING SIDEBAR */}
-
-      <div
-        className={`
-          absolute
-          top-0
-          left-0
-          h-full
-          z-50
-          transition-all
-          duration-300
-
-          ${
-            showSidebar
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-        `}
-      >
-        <ConversationSidebar
-          sessions={[]}
-          activeSessionId=""
-          onSelect={() => {}}
-          onNewChat={() => {}}
-          onDelete={() => {}}
-        />
-      </div>
-
-      {/* SIDEBAR TOGGLE */}
-
-      <button
-        onClick={() =>
-          setShowSidebar(
-            !showSidebar
-          )
-        }
-        className="
-          absolute
-          top-4
-          left-4
-          z-[60]
-
-          bg-zinc-900/90
-          backdrop-blur
-
-          border
-          border-zinc-800
-
-          p-2
-          rounded-xl
-
-          hover:bg-zinc-800
-          transition
-        "
-      >
-        {showSidebar ? (
-          <PanelLeftClose
-            size={18}
-            className="text-white"
-          />
-        ) : (
-          <PanelLeftOpen
-            size={18}
-            className="text-white"
-          />
-        )}
-      </button>
-
-      {/* BACK BUTTON */}
+      {/* CLEAR ALL BUTTON */}
 
       <button
         onClick={onBack}
@@ -158,8 +131,18 @@ export function WorkspaceView({
           transition
         "
       >
-        Upload More
+        Clear All
       </button>
+
+      {/* HIDDEN FILE INPUT */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".pdf"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
       {/* PDF PANEL */}
 
@@ -187,124 +170,121 @@ export function WorkspaceView({
 
             flex
             items-center
-            justify-between
-
-            px-4
-
+            gap-2
             bg-[#071022]
-
             flex-shrink-0
+            px-2
           "
         >
-          {/* LEFT */}
+          {/* SCROLLABLE TABS SECTION */}
+          <div 
+            className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 thin-scrollbar"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#3f3f46 #18181b',
+            }}
+          >
+            <style>{`
+              .thin-scrollbar::-webkit-scrollbar {
+                height: 4px;
+              }
+              .thin-scrollbar::-webkit-scrollbar-track {
+                background: #18181b;
+              }
+              .thin-scrollbar::-webkit-scrollbar-thumb {
+                background: #3f3f46;
+                border-radius: 9999px;
+              }
+              .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #52525b;
+              }
+            `}</style>
+            {/* TABS */}
+            {fileData.map(
+              (
+                pdf,
+                index
+              ) => (
 
-          <div
+                <button
+                  key={index}
+
+                  onClick={() =>
+                    setActivePdfIndex(index)
+                  }
+
+                  className={`
+                    px-3
+                    py-1.5
+                    text-sm
+                    whitespace-nowrap
+                    flex-shrink-0
+                    transition-all
+                    flex
+                    items-center
+                    gap-2
+                    relative
+                    min-w-0
+                    ${
+                      activePdfIndex === index
+                        ? "bg-zinc-900 text-white border-b-2 border-blue-500"
+                        : "bg-transparent text-slate-400 hover:text-slate-200 hover:bg-zinc-800"
+                    }
+                  `}
+                >
+                  <FileText size={14} />
+                  <span className="truncate max-w-[120px">
+                    {
+                      pdf.name.length > 20
+                        ? `${pdf.name
+                            .replace(".pdf", "")
+                            .slice(0, 17)}...`
+                        : pdf.name.replace(".pdf", "")
+                    }
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onRemovePdf(index)
+                    }}
+                    className="
+                      p-0.5
+                      rounded-full
+                      hover:bg-zinc-700
+                      transition
+                      flex-shrink-0
+                    "
+                  >
+                    <X size={12} />
+                  </button>
+                </button>
+              )
+            )}
+          </div>
+          
+          {/* ADD BUTTON - FIXED POSITION OUTSIDE SCROLL */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
             className="
-              flex
-              items-center
-              gap-2
+              px-2.5
+              py-1.5
+              rounded-lg
+              bg-zinc-900
+              border
+              border-zinc-800
+              text-slate-300
+              hover:bg-zinc-800
+              transition
+              flex-shrink-0
+              disabled:opacity-50
+              disabled:cursor-not-allowed
             "
           >
-            <button
-              className="
-                px-3
-                py-1.5
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+          </button>
 
-                rounded-lg
 
-                bg-zinc-900
-                border
-                border-zinc-800
-
-                text-sm
-
-                hover:bg-zinc-800
-                transition
-              "
-            >
-              −
-            </button>
-
-            <button
-              className="
-                px-3
-                py-1.5
-
-                rounded-lg
-
-                bg-zinc-900
-                border
-                border-zinc-800
-
-                text-sm
-
-                hover:bg-zinc-800
-                transition
-              "
-            >
-              +
-            </button>
-
-            <div
-              className="
-                text-sm
-                text-slate-400
-                ml-2
-              "
-            >
-              Page {selectedPage + 1}
-            </div>
-          </div>
-
-          {/* RIGHT */}
-
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-            "
-          >
-            <button
-              className="
-                px-3
-                py-1.5
-
-                rounded-lg
-
-                bg-zinc-900
-                border
-                border-zinc-800
-
-                text-sm
-
-                hover:bg-zinc-800
-                transition
-              "
-            >
-              Download
-            </button>
-
-            <button
-              className="
-                px-3
-                py-1.5
-
-                rounded-lg
-
-                bg-zinc-900
-                border
-                border-zinc-800
-
-                text-sm
-
-                hover:bg-zinc-800
-                transition
-              "
-            >
-              Fullscreen
-            </button>
-          </div>
         </div>
 
         {/* PDF VIEWER */}
@@ -318,8 +298,15 @@ export function WorkspaceView({
           "
         >
           <PDFViewer
-            fileUrl={fileData.url}
-            currentPage={selectedPage}
+            fileUrl={
+              fileData[
+                activePdfIndex
+              ]?.url || ""
+            }
+
+            currentPage={
+              selectedPage
+            }
           />
         </div>
       </div>
@@ -331,8 +318,17 @@ export function WorkspaceView({
         "
       >
         <ChatView
-          filename={fileData.name}
-          sessionId={fileData.sessionId}
+          filename={
+            fileData[
+              activePdfIndex
+            ]?.name || ""
+          }
+
+          sessionId={
+            fileData[
+              activePdfIndex
+            ]?.sessionId || ""
+          }
           activeCollection={
             activeCollection
           }

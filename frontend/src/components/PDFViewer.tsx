@@ -28,8 +28,9 @@ export const PDFViewer: React.FC<Props> = ({
   // =============================
 
   const defaultLayoutPluginInstance =
-    defaultLayoutPlugin()
-
+    defaultLayoutPlugin({
+      sidebarTabs: () => [],
+    })
   const pageNavigationPluginInstance =
     pageNavigationPlugin()
 
@@ -46,28 +47,6 @@ export const PDFViewer: React.FC<Props> = ({
     }
   }, [currentPage])
 
-  // =============================
-  // EMPTY STATE
-  // =============================
-
-  if (!fileUrl) {
-    return (
-      <div
-        className="
-          h-full
-          flex
-          items-center
-          justify-center
-
-          bg-zinc-200
-
-          text-slate-500
-        "
-      >
-        No PDF selected
-      </div>
-    )
-  }
 
   // =============================
   // VIEWER
@@ -96,6 +75,7 @@ export const PDFViewer: React.FC<Props> = ({
         />
 
       </Worker>
+
     </div>
   ) 
 }
