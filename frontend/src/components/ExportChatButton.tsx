@@ -29,7 +29,7 @@ export function ExportChatButton({
     const children: Paragraph[] = []
 
 console.log(
-  "EXPORT CLICKE
+  "EXPORT CLICKED"
 )
 
 const response =
