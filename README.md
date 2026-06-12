@@ -29,7 +29,7 @@ An AI-powered document interaction platform designed to enhance the way users en
 ### Study Kit Export
 
 <img src="https://github.com/user-attachments/assets/0322dd1b-86aa-4c9e-98c6-2b748f4de7cc" width="700" alt="Study Kit Export" />
----
+
 
 ## 📌 Overview
 
