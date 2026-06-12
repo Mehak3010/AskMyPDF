@@ -109,7 +109,7 @@ function App() {
       <header
         className="
           h-14
-          border-b
+          border-outline
           border-slate-800
           flex
           items-center
@@ -131,19 +131,6 @@ function App() {
           <span className="font-bold text-lg tracking-tight">
             AskMyPDF
           </span>
-
-          <Badge
-            variant="outline"
-            className="
-              text-[10px]
-              uppercase
-              tracking-widest
-              border-primary/20
-              text-primary
-            "
-          >
-            Phase 6
-          </Badge>
         </div>
 
         {/* RIGHT */}
