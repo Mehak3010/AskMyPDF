@@ -8,28 +8,27 @@ An AI-powered document interaction platform designed to enhance the way users en
 
 ### Home Dashboard
 
-<img width="1364" height="625" alt="{CAAEDB87-82CA-4643-80D0-BDE03FA84A90}" src="https://github.com/user-attachments/assets/25917be2-1624-4be5-a3ec-b027bc6ee8a7" />
+<img src="https://github.com/user-attachments/assets/25917be2-1624-4be5-a3ec-b027bc6ee8a7" width="800" alt="Home Dashboard" />
 
 ### Multi-PDF Workspace
 
-<img width="1366" height="621" alt="{B044C172-275F-423A-8A3A-35A8E588CA90}" src="https://github.com/user-attachments/assets/d30f2112-5048-423c-9134-3aa279397345" />
+<img src="https://github.com/user-attachments/assets/d30f2112-5048-423c-9134-3aa279397345" width="850" alt="Multi-PDF Workspace" />
 
 ### AI-Powered Chat Interface
 
-<img width="684" height="506" alt="{4EBACBBB-2D2A-43E7-A280-141A9402277C}" src="https://github.com/user-attachments/assets/199ace7b-e03e-44f1-849c-fc85dad4771f" />
+<img src="https://github.com/user-attachments/assets/199ace7b-e03e-44f1-849c-fc85dad4771f" width="650" alt="AI-Powered Chat Interface" />
 
 ### Study Tools
 
-<img width="1365" height="632" alt="{D27508E8-F3F8-4B09-B077-9CC0DBD70D98}" src="https://github.com/user-attachments/assets/8509df5e-d8ad-440e-b201-f7c06ffe6a89" />
+<img src="https://github.com/user-attachments/assets/8509df5e-d8ad-440e-b201-f7c06ffe6a89" width="800" alt="Study Tools" />
 
 ### Quiz Module
 
-<img width="894" height="566" alt="{297C7397-5939-44C8-A762-CE04AF9AAE72}" src="https://github.com/user-attachments/assets/e0f5c7ba-b232-4f87-8dcd-8d2e3db9b292" />
+<img src="https://github.com/user-attachments/assets/e0f5c7ba-b232-4f87-8dcd-8d2e3db9b292" width="700" alt="Quiz Module" />
 
 ### Study Kit Export
 
-<img width="772" height="496" alt="image" src="https://github.com/user-attachments/assets/0322dd1b-86aa-4c9e-98c6-2b748f4de7cc" />
-
+<img src="https://github.com/user-attachments/assets/0322dd1b-86aa-4c9e-98c6-2b748f4de7cc" width="700" alt="Study Kit Export" />
 ---
 
 ## 📌 Overview
