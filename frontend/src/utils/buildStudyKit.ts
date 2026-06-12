@@ -70,7 +70,9 @@ export function buildStudyKit(
           ) =>
       `${index + 1}. ${d.term}
 
-      Meaning: ${d.meaning}`
+      Meaning: ${d.meaning}
+      
+      `
         )
     })
   }
