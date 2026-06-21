@@ -30,9 +30,9 @@ An AI-powered document interaction platform designed to enhance the way users en
 
 <img src="https://github.com/user-attachments/assets/0322dd1b-86aa-4c9e-98c6-2b748f4de7cc" width="700" alt="Study Kit Export" />
 
-📄 View Sample Study Kit : [SampleStudyKit.docx](https://docs.google.com/document/d/17KAU7N_CC-hTzDgLOSbWtGuT0ht0zmgH/edit?usp=sharing&ouid=114947506941146205702&rtpof=true&sd=true)
+📄 View Sample Study Kit : [SampleStudyKit.docx](SampleStudyKit.pdf)
 
-
+---
 
 ## 📌 Overview
 
