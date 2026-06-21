@@ -37,6 +37,14 @@ AskMyPDF aims to simplify information retrieval and knowledge exploration from P
 
 ---
 
+## 📚 Sample AI-Generated Study Kit
+
+AskMyPDF can automatically generate structured study material including summaries, key definitions, important questions, MCQs, and revision notes.
+
+📄 [View Sample Study Kit](./sample-study-kit.docx)
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Frontend
