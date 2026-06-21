@@ -30,18 +30,13 @@ An AI-powered document interaction platform designed to enhance the way users en
 
 <img src="https://github.com/user-attachments/assets/0322dd1b-86aa-4c9e-98c6-2b748f4de7cc" width="700" alt="Study Kit Export" />
 
+📄 View Sample Study Kit : [SampleStudyKit.docx](https://docs.google.com/document/d/17KAU7N_CC-hTzDgLOSbWtGuT0ht0zmgH/edit?usp=sharing&ouid=114947506941146205702&rtpof=true&sd=true)
+
+
 
 ## 📌 Overview
 
 AskMyPDF aims to simplify information retrieval and knowledge exploration from PDF documents by leveraging modern AI techniques. The platform provides an intuitive workspace where users can interact with uploaded documents and obtain meaningful insights in a conversational manner.
-
----
-
-## 📚 Sample AI-Generated Study Kit
-
-AskMyPDF can automatically generate structured study material including summaries, key definitions, important questions, MCQs, and revision notes.
-
-📄 [View Sample Study Kit]([SampleStudyKit.docx](https://docs.google.com/document/d/17KAU7N_CC-hTzDgLOSbWtGuT0ht0zmgH/edit?usp=sharing&ouid=114947506941146205702&rtpof=true&sd=true)
 
 ---
 
