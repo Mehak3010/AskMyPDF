@@ -41,7 +41,7 @@ AskMyPDF aims to simplify information retrieval and knowledge exploration from P
 
 AskMyPDF can automatically generate structured study material including summaries, key definitions, important questions, MCQs, and revision notes.
 
-📄 [View Sample Study Kit]([SampleStudyKit.docx](https://docs.google.com/document/d/17KAU7N_CC-hTzDgLOSbWtGuT0ht0zmgH/edit?usp=sharing&ouid=114947506941146205702&rtpof=true&sd=true))
+📄 [View Sample Study Kit]([SampleStudyKit.docx](https://docs.google.com/document/d/17KAU7N_CC-hTzDgLOSbWtGuT0ht0zmgH/edit?usp=sharing&ouid=114947506941146205702&rtpof=true&sd=true)
 
 ---
 
