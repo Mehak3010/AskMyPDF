@@ -6,6 +6,7 @@ import {
 
 import ReactMarkdown from "react-markdown"
 import { SourceCard } from "./sourceCard"
+import type { Source } from "./sourceCard"
 import { StudyTools } from "./StydyTools"
 import { AIActionButtons } from "./AiActionButtons"
 import { AIModeSelector } from "./AiModeSelector"
@@ -18,14 +19,6 @@ import { ExamPrepView } from "./ExamPrepView"
 import type { ExamPrepData } from "../types/examPrep"
 import { VivaView } from "./VivaView"
 import type { VivaQuestion } from "../types/viva"
-
-export interface Source {
-  metadata: {
-    source: string
-    page: number
-    url?: string
-  }
-}
 
 interface Message {
   role: "user" | "assistant"
@@ -60,17 +53,30 @@ export function ChatView({
   // =============================
 
   const [sessions, setSessions] =
-    useState<ChatSession[]>([
-      {
-        id: crypto.randomUUID(),
-        title: "New Chat",
-        messages: [],
-        createdAt: Date.now(),
-      },
-    ])
+    useState<ChatSession[]>(() => {
+      const savedSessions = localStorage.getItem(`chat-sessions-${filename}`)
+      if (savedSessions) {
+        try {
+          const parsed = JSON.parse(savedSessions)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed
+          }
+        } catch {
+          // fall through to default session below
+        }
+      }
+      return [
+        {
+          id: crypto.randomUUID(),
+          title: "New Chat",
+          messages: [],
+          createdAt: Date.now(),
+        },
+      ]
+    })
 
-  const [activeSessionId, setActiveSessionId] =
-    useState("")
+  const [activeSessionId] =
+    useState(() => sessions[0]?.id ?? "")
 
   const [input, setInput] =
     useState("")
@@ -107,12 +113,8 @@ export function ChatView({
   // =============================
   // INITIAL SESSION
   // =============================
-
-  useEffect(() => {
-    if (sessions.length > 0 && !activeSessionId) {
-      setActiveSessionId(sessions[0].id)
-    }
-  }, [sessions, activeSessionId])
+  // activeSessionId now defaults to the first session's id above,
+  // so no effect is needed to sync it on mount.
 
   // =============================
   // ACTIVE SESSION
@@ -169,17 +171,8 @@ export function ChatView({
   // =============================
   // RESTORE SESSIONS
   // =============================
-
-  useEffect(() => {
-    const savedSessions = localStorage.getItem(`chat-sessions-${filename}`)
-    if (savedSessions) {
-      const parsed = JSON.parse(savedSessions)
-      setSessions(parsed)
-      if (parsed.length > 0) {
-        setActiveSessionId(parsed[0].id)
-      }
-    }
-  }, [filename])
+  // Handled by the lazy useState initializer above — sessions and
+  // activeSessionId are read from localStorage on mount, not via effect.
 
   // =============================
   // SEND MESSAGE
@@ -596,7 +589,7 @@ export function ChatView({
                           {message.content ? (
                             <ReactMarkdown
                               components={{
-                                a: ({ node, ...props }) => {
+                                a: ({ ...props }) => {
                                   const href = props.href || ""
                                   if (href.startsWith("jump:")) {
                                     const page = parseInt(href.split(":")[1])

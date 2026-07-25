@@ -96,11 +96,11 @@ export const UploadView: React.FC<
           )
         }
 
-      } catch (err) {
-        setError(
-          (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-            'Failed to upload files.'
-        )
+      } catch (err: unknown) {
+        const message = axios.isAxiosError(err)
+          ? err.response?.data?.detail
+          : undefined
+        setError(message || 'Failed to upload files.')
       } finally {
         setIsUploading(false)
       }

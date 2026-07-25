@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Folder, Plus, Trash2, Search, Layers } from 'lucide-react';
+import { FileText, Folder, Plus, Trash2, Layers } from 'lucide-react';
 import { cn } from '../lib/utils';
 import axios from 'axios';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 
 interface Document {
@@ -41,6 +40,10 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
   };
 
   useEffect(() => {
+    // Fetching on mount to sync with the backend (an external system) is
+    // the documented, valid use of useEffect:
+    // https://react.dev/learn/you-might-not-need-an-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMetadata();
     // Refresh every 10 seconds to catch new uploads
     const interval = setInterval(fetchMetadata, 10000);

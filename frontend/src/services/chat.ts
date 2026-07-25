@@ -1,6 +1,12 @@
-import type { Source } from "../components/ChatView"
+interface Source {
+  metadata: {
+    url: string
+    source: string
+    page: number
+  }
+}
 
-interface HistoryMessage {
+interface ChatMessage {
   role: "user" | "assistant"
   content: string
 }
@@ -39,7 +45,7 @@ async function handleStreamingResponse(
 
 export async function streamChat(
   message: string,
-  history: HistoryMessage[],
+  history: ChatMessage[],
   collection: string,
   mode: string,
   onChunk: (chunk: string) => void,

@@ -5,6 +5,7 @@ import { PDFViewer } from "./PDFViewer"
 
 import { ChatView } from "./ChatView"
 
+
 import { FileText, Plus, Loader2, X } from "lucide-react"
 
 interface Props {
@@ -316,6 +317,11 @@ export function WorkspaceView({
         "
       >
         <ChatView
+          key={
+            fileData[
+              activePdfIndex
+            ]?.name || ""
+          }
           filename={
             fileData[
               activePdfIndex

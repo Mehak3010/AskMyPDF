@@ -8,31 +8,36 @@ interface Props {
 }
 
 export function AIActionButtons({
-  content,
   onAction,
   onQuiz,
   onFlashcards,
-  onExamPrep,
   onViva,
 }: Props) {
-  const actions = [
+  const actions: (
+    | { kind: "prompt"; label: string; prompt: string }
+    | { kind: "action"; label: string; action: () => void }
+  )[] = [
     {
+      kind: "prompt",
       label: "Summarize",
       prompt:
         "Summarize the previous response in concise bullet points",
     },
 
     {
+      kind: "action",
       label: "Quiz",
       action: onQuiz,
     },
 
     {
+      kind: "action",
       label: "Flashcards",
       action: onFlashcards,
     },
 
     {
+      kind: "action",
       label: "Viva",
       action: onViva,
     },
@@ -45,7 +50,7 @@ export function AIActionButtons({
         <button
           key={action.label}
           onClick={() => {
-            if ('action' in action) {
+            if (action.kind === "action") {
               action.action()
             } else {
               onAction(action.prompt)

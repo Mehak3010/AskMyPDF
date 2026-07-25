@@ -2,8 +2,6 @@ import { useState } from 'react'
 
 import { FileText } from 'lucide-react'
 
-import { Badge } from './components/ui/badge'
-
 import { HomeDashboard } from './components/HomeDashboard'
 
 import { WorkspaceView } from './components/WorkspaceView'
