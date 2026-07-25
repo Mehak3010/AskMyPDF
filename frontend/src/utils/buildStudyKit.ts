@@ -1,10 +1,38 @@
-export interface StudyKitSection {
-  title: string
-  items: string[]
+ export interface StudyKitSection {
+   title: string
+   items: string[]
+ }
+
+interface StudyKitQA {
+  question: string
+  answer: string | string[]
+}
+
+interface StudyKitDefinition {
+  term: string
+  meaning: string
+}
+
+interface StudyKitMCQ {
+  question: string
+  answer: string
+  explanation: string
+}
+
+export interface StudyKitData {
+  summary?: string
+  important_topics?: string[]
+  definitions?: StudyKitDefinition[]
+  long_questions?: StudyKitQA[]
+  short_questions?: StudyKitQA[]
+  important_questions?: StudyKitQA[]
+  viva_questions?: StudyKitQA[]
+  mcq_revision?: StudyKitMCQ[]
+  revision_sheet?: string[]
 }
 
 export function buildStudyKit(
-  studyKit: any
+  studyKit: StudyKitData
 ) {
 
   const sections: StudyKitSection[] = []
@@ -65,7 +93,7 @@ export function buildStudyKit(
       items:
         studyKit.definitions.map(
           (
-            d: any,
+            d: StudyKitDefinition,
             index: number
           ) =>
       `${index + 1}. ${d.term}
@@ -92,7 +120,7 @@ export function buildStudyKit(
         items:
           studyKit.long_questions.map(
             (
-              q: any,
+              q: StudyKitQA,
               index: number
             ) =>
 
@@ -126,7 +154,7 @@ export function buildStudyKit(
       items:
         studyKit.short_questions.map(
           (
-            q: any,
+            q: StudyKitQA,
             index: number
           ) =>
       `${index + 1}. ${q.question}
@@ -151,7 +179,7 @@ export function buildStudyKit(
       items:
         studyKit.important_questions.map(
           (
-            q: any,
+            q: StudyKitQA,
             index: number
           ) =>
 
@@ -185,7 +213,7 @@ export function buildStudyKit(
       items:
         studyKit.viva_questions.map(
           (
-            q: any,
+            q: StudyKitQA,
             index: number
           ) =>
       `${index + 1}. ${q.question}
@@ -210,7 +238,7 @@ export function buildStudyKit(
       items:
         studyKit.mcq_revision.map(
           (
-            q: any,
+            q: StudyKitQA,
             index: number
           ) =>
       `${index + 1}. ${q.question}

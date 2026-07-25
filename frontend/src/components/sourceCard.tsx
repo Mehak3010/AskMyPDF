@@ -1,13 +1,13 @@
+import type { Source } from "./ChatView"
+
 interface Props {
-  source: any
-
-  onNavigate?: (page: number) => void
-
-  onOpenPdf?: (
-    url: string,
-    sourceName?: string
-  ) => void
-}
+  source: Source
+   onNavigate?: (page: number) => void
+   onOpenPdf?: (
+     url: string,
+     sourceName?: string
+   ) => void
+ }
 
 export function SourceCard({
   source,
@@ -17,10 +17,12 @@ export function SourceCard({
   return (
     <button
       onClick={() => {
-        onOpenPdf?.(
+        if (source.metadata.url) {
+          onOpenPdf?.(
             source.metadata.url,
             source.metadata.source
-        )
+          )
+        }
 
         onNavigate?.(source.metadata.page)
       }}

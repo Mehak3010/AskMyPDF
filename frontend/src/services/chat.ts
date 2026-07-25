@@ -1,7 +1,14 @@
+import type { Source } from "../components/ChatView"
+
+interface HistoryMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
 async function handleStreamingResponse(
   response: Response,
   onChunk: (chunk: string) => void,
-  onSources?: (sources: any[]) => void
+  onSources?: (sources: Source[]) => void
 ) {
   const reader = response.body?.getReader()
   if (!reader) return
@@ -32,11 +39,11 @@ async function handleStreamingResponse(
 
 export async function streamChat(
   message: string,
-  history: any[],
+  history: HistoryMessage[],
   collection: string,
   mode: string,
   onChunk: (chunk: string) => void,
-  onSources: (sources: any[]) => void
+  onSources: (sources: Source[]) => void
 ) {
   const response = await fetch("http://localhost:8001/chat", {
     method: "POST",

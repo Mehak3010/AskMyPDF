@@ -19,10 +19,18 @@ import type { ExamPrepData } from "../types/examPrep"
 import { VivaView } from "./VivaView"
 import type { VivaQuestion } from "../types/viva"
 
+export interface Source {
+  metadata: {
+    source: string
+    page: number
+    url?: string
+  }
+}
+
 interface Message {
   role: "user" | "assistant"
   content: string
-  sources?: any[]
+  sources?: Source[]
 }
 
 interface ChatSession {

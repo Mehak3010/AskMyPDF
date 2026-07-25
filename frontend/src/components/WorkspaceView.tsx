@@ -5,8 +5,6 @@ import { PDFViewer } from "./PDFViewer"
 
 import { ChatView } from "./ChatView"
 
-import { ConversationSidebar } from "./ConversationSidebar"
-
 import { FileText, Plus, Loader2, X } from "lucide-react"
 
 interface Props {

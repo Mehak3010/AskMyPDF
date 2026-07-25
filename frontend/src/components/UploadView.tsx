@@ -96,9 +96,9 @@ export const UploadView: React.FC<
           )
         }
 
-      } catch (err: any) {
+      } catch (err) {
         setError(
-          err.response?.data?.detail ||
+          (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
             'Failed to upload files.'
         )
       } finally {

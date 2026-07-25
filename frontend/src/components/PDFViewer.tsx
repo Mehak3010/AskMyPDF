@@ -45,7 +45,7 @@ export const PDFViewer: React.FC<Props> = ({
     if (currentPage >= 0) {
       jumpToPage(currentPage)
     }
-  }, [currentPage])
+  }, [currentPage, jumpToPage])
 
 
   // =============================
